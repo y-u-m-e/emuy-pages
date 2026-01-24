@@ -144,10 +144,12 @@ export default function Layout() {
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-lg font-bold">E</span>
-          </div>
-          <span className="text-lg">Emuy Tools</span>
+          <img 
+            src="/favicon/android-chrome-192x192.png" 
+            alt="Yume" 
+            className="w-8 h-8 rounded-full"
+          />
+          <span className="text-lg">Yume Tools</span>
         </Link>
       </div>
       
