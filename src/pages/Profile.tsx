@@ -12,7 +12,6 @@
  * - Permission status grid showing access to each app feature
  * - Activity statistics (if user has cruddy access)
  * - Quick action links to accessible features
- * - Service usage & billing tracker (admin only)
  * - Sign out functionality
  */
 
@@ -20,11 +19,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { API_URLS } from '@/lib/api-config';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   User, 
@@ -41,13 +39,6 @@ import {
   Settings,
   Rocket,
   MessageSquare,
-  CreditCard,
-  Cloud,
-  Train,
-  Github,
-  Gamepad2,
-  Package,
-  Sparkles,
   Copy,
   Check
 } from 'lucide-react';
@@ -61,14 +52,6 @@ interface UserStats {
   lastActive?: string;
 }
 
-interface ServiceUsage {
-  github?: {
-    actionsMinutes?: number;
-    actionsLimit?: number;
-  };
-  loading: boolean;
-  error?: string;
-}
 
 // =============================================================================
 // COMPONENT
@@ -85,7 +68,6 @@ export default function Profile() {
   // State
   const [stats, setStats] = useState<UserStats>({});
   const [loadingStats, setLoadingStats] = useState(false);
-  const [serviceUsage, setServiceUsage] = useState<ServiceUsage>({ loading: false });
   const [copiedId, setCopiedId] = useState(false);
 
   // ==========================================================================
@@ -121,38 +103,6 @@ export default function Profile() {
     setLoadingStats(false);
   };
 
-  const fetchServiceUsage = async () => {
-    setServiceUsage(prev => ({ ...prev, loading: true, error: undefined }));
-    
-    try {
-      const githubToken = localStorage.getItem('github_pat');
-      let githubData = undefined;
-      
-      if (githubToken) {
-        try {
-          const ghRes = await fetch('https://api.github.com/orgs/y-u-m-e/settings/billing/actions', {
-            headers: { Authorization: `Bearer ${githubToken}` }
-          });
-          if (ghRes.ok) {
-            const data = await ghRes.json();
-            githubData = {
-              actionsMinutes: data.total_minutes_used || 0,
-              actionsLimit: data.included_minutes || 2000
-            };
-          }
-        } catch {
-          // GitHub billing API may not be accessible
-        }
-      }
-
-      setServiceUsage({ github: githubData, loading: false });
-    } catch (err) {
-      setServiceUsage({
-        loading: false,
-        error: err instanceof Error ? err.message : 'Failed to fetch usage'
-      });
-    }
-  };
 
   // ==========================================================================
   // HELPERS
@@ -265,89 +215,6 @@ export default function Profile() {
     },
   ];
 
-  // Service cards for billing section
-  const services = [
-    {
-      name: 'Cloudflare',
-      desc: 'Workers, Pages, D1, R2',
-      icon: <Cloud className="h-5 w-5" />,
-      gradient: 'from-orange-500 to-orange-600',
-      limits: [
-        { label: 'Workers', value: '100K req/day' },
-        { label: 'Pages', value: '500 builds/mo' },
-        { label: 'D1', value: '5M reads/day' },
-        { label: 'R2', value: '10GB storage' },
-      ],
-      link: 'https://dash.cloudflare.com/?to=/:account/workers/overview',
-      linkText: 'View Dashboard'
-    },
-    {
-      name: 'Railway',
-      desc: 'Bot Hosting',
-      icon: <Train className="h-5 w-5" />,
-      gradient: 'from-violet-500 to-purple-600',
-      limits: [
-        { label: 'Monthly Credit', value: '$5/month' },
-        { label: 'Compute', value: '~500 hrs/mo' },
-      ],
-      note: 'Hobby plan • Auto-scale pricing',
-      link: 'https://railway.app/account/usage',
-      linkText: 'View Usage'
-    },
-    {
-      name: 'GitHub',
-      desc: 'Actions & Storage',
-      icon: <Github className="h-5 w-5" />,
-      gradient: 'from-gray-700 to-gray-900',
-      limits: [
-        { label: 'Actions Minutes', value: serviceUsage.github?.actionsMinutes !== undefined 
-          ? `${serviceUsage.github.actionsMinutes} / ${serviceUsage.github.actionsLimit}`
-          : '2,000/mo' },
-        { label: 'LFS Storage', value: '1GB free' },
-      ],
-      note: 'Free for public repos',
-      link: 'https://github.com/settings/billing/summary',
-      linkText: 'View Billing'
-    },
-    {
-      name: 'Discord',
-      desc: 'Bot API',
-      icon: <Gamepad2 className="h-5 w-5" />,
-      gradient: 'from-indigo-500 to-indigo-700',
-      limits: [
-        { label: 'Status', value: 'Free ✓', isGreen: true },
-        { label: 'Rate Limits', value: 'Per-route' },
-      ],
-      note: 'No billing • Just rate limits',
-      link: 'https://discord.com/developers/applications',
-      linkText: 'Developer Portal'
-    },
-    {
-      name: 'jsDelivr',
-      desc: 'CDN (Widgets)',
-      icon: <Package className="h-5 w-5" />,
-      gradient: 'from-red-500 to-pink-600',
-      limits: [
-        { label: 'Status', value: 'Free ✓', isGreen: true },
-        { label: 'Bandwidth', value: 'Unlimited' },
-      ],
-      note: 'Free for open source',
-      link: 'https://www.jsdelivr.com/package/gh/y-u-m-e/yume-tools',
-      linkText: 'View Stats'
-    },
-    {
-      name: 'Cursor',
-      desc: 'AI IDE',
-      icon: <Sparkles className="h-5 w-5" />,
-      gradient: 'from-blue-500 to-purple-600',
-      limits: [
-        { label: 'Premium Requests', value: 'Check in app' },
-      ],
-      note: 'Free: ~500/month • Pro: Unlimited fast',
-      link: 'https://cursor.com/settings',
-      linkText: 'View Usage'
-    },
-  ];
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -559,89 +426,6 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* ========== SERVICE USAGE & BILLING (Admin Only) ========== */}
-        {isAdmin && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <CreditCard className="h-5 w-5 text-primary" />
-                    Service Usage & Billing
-                  </CardTitle>
-                  <CardDescription>
-                    Track your usage across services to avoid unexpected charges
-                  </CardDescription>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={fetchServiceUsage}
-                  disabled={serviceUsage.loading}
-                >
-                  {serviceUsage.loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Refresh'
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Service Cards Grid */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {services.map((service) => (
-                  <div key={service.name} className="bg-secondary/50 rounded-xl p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${service.gradient} flex items-center justify-center text-white`}>
-                        {service.icon}
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{service.name}</h3>
-                        <p className="text-xs text-muted-foreground">{service.desc}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-2 mb-3">
-                      {service.limits.map((limit, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{limit.label}</span>
-                          <span className={'isGreen' in limit && limit.isGreen ? 'text-green-400' : ''}>
-                            {limit.value}
-                          </span>
-                        </div>
-                      ))}
-                      {service.note && (
-                        <p className="text-xs text-muted-foreground">{service.note}</p>
-                      )}
-                    </div>
-                    <Button variant="secondary" size="sm" className="w-full" asChild>
-                      <a href={service.link} target="_blank" rel="noopener noreferrer">
-                        {service.linkText}
-                        <ExternalLink className="h-3 w-3 ml-2" />
-                      </a>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              {/* Summary Footer */}
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  💡
-                </div>
-                <div>
-                  <h4 className="font-medium">Free Tier Summary</h4>
-                  <p className="text-sm text-muted-foreground">
-                    With current setup, you're using mostly free tiers. Railway's $5/month credit covers the Discord bot.
-                    Monitor Cloudflare Workers requests if traffic grows.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </TooltipProvider>
   );
