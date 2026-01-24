@@ -62,6 +62,7 @@ interface RepoStatus {
   icon: React.ReactNode;
   type: 'pages' | 'worker' | 'bot';
   url?: string;
+  stagingUrl?: string;
   lastCommit?: {
     sha: string;
     message: string;
@@ -174,7 +175,8 @@ const REPOS: Omit<RepoStatus, 'loading' | 'lastCommit' | 'workflows' | 'error'>[
     description: 'Documentation (docs.emuy.gg)',
     icon: <FileText className="h-5 w-5" />,
     type: 'pages',
-    url: 'https://docs.emuy.gg'
+    url: 'https://docs.emuy.gg',
+    stagingUrl: 'https://dev.docs-pages-bj3.pages.dev'
   },
   // Bot (on GitHub)
   { 
@@ -886,7 +888,7 @@ export default function DevOps() {
                                     Production
                                   </a>
                                   <a 
-                                    href={`https://dev.${repo.name}.pages.dev`}
+                                    href={repo.stagingUrl || `https://dev.${repo.name}.pages.dev`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-1 text-amber-400 hover:underline"

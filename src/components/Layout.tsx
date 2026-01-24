@@ -70,7 +70,7 @@ const stagingNavItems: NavItem[] = [
   { path: 'https://dev.emuy-pages.pages.dev', label: 'Emuy (Dev)', icon: Home, external: true },
   { path: 'https://dev.ironforged-pages.pages.dev', label: 'Ironforged (Dev)', icon: Gamepad2, external: true },
   { path: 'https://dev.bingo-pages.pages.dev', label: 'Bingo (Dev)', icon: Grid3X3, external: true },
-  { path: 'https://dev.docs-pages.pages.dev', label: 'Docs (Dev)', icon: BookOpen, external: true },
+  { path: 'https://dev.docs-pages-bj3.pages.dev', label: 'Docs (Dev)', icon: BookOpen, external: true },
 ];
 
 export default function Layout() {
