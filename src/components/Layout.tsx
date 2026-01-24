@@ -147,7 +147,7 @@ export default function Layout() {
           <img 
             src="/favicon/android-chrome-192x192.png" 
             alt="Yume" 
-            className="w-8 h-8 rounded-full"
+            className="w-8 h-8 rounded-full invert"
           />
           <span className="text-lg">Yume Tools</span>
         </Link>
