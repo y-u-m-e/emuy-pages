@@ -60,6 +60,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { 
   ClipboardList,
   CalendarDays,
@@ -661,6 +667,7 @@ export default function CruddyPanel() {
   // ==========================================================================
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-start justify-between">
@@ -808,9 +815,14 @@ export default function CruddyPanel() {
                   <Search className="h-4 w-4" />
                   Search
                 </Button>
-                <Button variant="ghost" onClick={clearFilters} className="px-3">
-                  <X className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" onClick={clearFilters} className="px-3">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Clear filters</TooltipContent>
+                </Tooltip>
               </div>
               {activeTab === 'events' && canEditCruddy && (
                 <div className="mt-4 pt-4 border-t border-border/50">
@@ -895,64 +907,94 @@ export default function CruddyPanel() {
                         </Badge>
                         
                         {dupeCount > 0 && canEditCruddy && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleRemoveDuplicates(group); }}
-                            className="h-7 text-xs text-orange-400 border-orange-400/30 hover:bg-orange-400/10"
-                          >
-                            <RefreshCw className="h-3 w-3 mr-1" />
-                            {dupeCount}
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleRemoveDuplicates(group); }}
+                                className="h-7 text-xs text-orange-400 border-orange-400/30 hover:bg-orange-400/10"
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                {dupeCount}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Remove duplicate entries</TooltipContent>
+                          </Tooltip>
                         )}
                         
                         {canEditCruddy && (
                           <>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => { e.stopPropagation(); setAddingToEvent({ event: group.event, date: group.date }); setNewPlayerName(''); }}
-                            >
-                              <UserPlus className="h-4 w-4 text-primary" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => { e.stopPropagation(); setRenamingEvent({ event: group.event, date: group.date }); setNewEventName(group.event); }}
-                            >
-                              <Pencil className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => { e.stopPropagation(); setSettingHostEvent({ event: group.event, date: group.date, currentHost: group.host }); setNewHostName(group.host); }}
-                            >
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => { e.stopPropagation(); setAddingToEvent({ event: group.event, date: group.date }); setNewPlayerName(''); }}
+                                >
+                                  <UserPlus className="h-4 w-4 text-primary" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Add player to event</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => { e.stopPropagation(); setRenamingEvent({ event: group.event, date: group.date }); setNewEventName(group.event); }}
+                                >
+                                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Rename event</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => { e.stopPropagation(); setSettingHostEvent({ event: group.event, date: group.date, currentHost: group.host }); setNewHostName(group.host); }}
+                                >
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Set event host</TooltipContent>
+                            </Tooltip>
                           </>
                         )}
                         
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => { e.stopPropagation(); copyIngots(group); }}
-                        >
-                          <Copy className="h-4 w-4 text-accent" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => { e.stopPropagation(); copyIngots(group); }}
+                            >
+                              <Copy className="h-4 w-4 text-accent" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Copy ingots command</TooltipContent>
+                        </Tooltip>
                         
                         {canEditCruddy && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => { e.stopPropagation(); setDeleteGroupConfirm(group); }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => { e.stopPropagation(); setDeleteGroupConfirm(group); }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete all event records</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </div>
@@ -1011,12 +1053,22 @@ export default function CruddyPanel() {
                             <span>{a.name}</span>
                             {canEditCruddy && (
                               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEditModal({ ...a, event: group.event, date: group.date })}>
-                                  <Pencil className="h-2.5 w-2.5" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setDeleteConfirm({ id: a.id, name: a.name })}>
-                                  <X className="h-2.5 w-2.5 text-destructive" />
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEditModal({ ...a, event: group.event, date: group.date })}>
+                                      <Pencil className="h-2.5 w-2.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit record</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setDeleteConfirm({ id: a.id, name: a.name })}>
+                                      <X className="h-2.5 w-2.5 text-destructive" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Remove from event</TooltipContent>
+                                </Tooltip>
                               </div>
                             )}
                           </div>
@@ -1041,9 +1093,14 @@ export default function CruddyPanel() {
                     <span className="text-muted-foreground font-normal ml-2">(showing {recordsData.length})</span>
                   )}
                 </CardTitle>
-                <Button variant="ghost" size="icon" onClick={loadRecords}>
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={loadRecords}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Refresh records</TooltipContent>
+                </Tooltip>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -1083,12 +1140,22 @@ export default function CruddyPanel() {
                         {canEditCruddy && (
                           <TableCell>
                             <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditModal(r)}>
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteConfirm({ id: r.id, name: r.name })}>
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditModal(r)}>
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit record</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteConfirm({ id: r.id, name: r.name })}>
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete record</TooltipContent>
+                              </Tooltip>
                             </div>
                           </TableCell>
                         )}
@@ -1434,5 +1501,6 @@ export default function CruddyPanel() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </TooltipProvider>
   );
 }
