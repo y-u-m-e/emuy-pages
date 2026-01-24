@@ -42,7 +42,11 @@ import {
   ArrowUpDown,
   Ban,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { API_URLS } from '@/lib/api-config';
 
@@ -63,15 +67,17 @@ interface DBUser {
 }
 
 interface Role {
-  id: number;
+  id: string;
   name: string;
+  description?: string;
   color: string;
   priority: number;
-  is_default: boolean;
+  is_default?: boolean;
+  permissions?: Permission[];
 }
 
 interface Permission {
-  id: number;
+  id: string;
   name: string;
   description: string;
   category: string;
@@ -102,6 +108,14 @@ export default function Admin() {
   const [newUserId, setNewUserId] = useState('');
   const [selectedUser, setSelectedUser] = useState<DBUser | null>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  
+  // Role management state
+  const [createRoleDialogOpen, setCreateRoleDialogOpen] = useState(false);
+  const [editRoleDialogOpen, setEditRoleDialogOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [newRole, setNewRole] = useState({ id: '', name: '', description: '', color: '#4CAF50', priority: 10 });
+  const [rolePermissions, setRolePermissions] = useState<string[]>([]);
+  const [savingRole, setSavingRole] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -195,18 +209,124 @@ export default function Admin() {
     }
   };
 
-  const handleAssignRole = async (userId: string, roleId: number, assign: boolean) => {
+  const handleAssignRole = async (userId: string, roleId: string, assign: boolean) => {
     try {
-      await fetch(`${AUTH_API}/auth/admin/users/${userId}/roles`, {
+      // Use the correct endpoint: /auth/admin/user-roles with discord_id and role_id in body
+      await fetch(`${AUTH_API}/auth/admin/user-roles`, {
         method: assign ? 'POST' : 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_id: roleId }),
+        body: JSON.stringify({ discord_id: userId, role_id: roleId }),
       });
       fetchUsers();
+      // Also update selected user's roles if the dialog is open
+      if (selectedUser && selectedUser.discord_id === userId) {
+        const updatedRoles = assign 
+          ? [...(selectedUser.roles || []), roles.find(r => r.id === roleId)!].filter(Boolean)
+          : (selectedUser.roles || []).filter(r => r.id !== roleId);
+        setSelectedUser({ ...selectedUser, roles: updatedRoles });
+      }
     } catch (err) {
       console.error('Failed to assign role:', err);
     }
+  };
+
+  const handleCreateRole = async () => {
+    if (!newRole.id.trim() || !newRole.name.trim()) return;
+    setSavingRole(true);
+    try {
+      const res = await fetch(`${AUTH_API}/auth/admin/roles`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: newRole.id.toLowerCase().replace(/\s+/g, '_'),
+          name: newRole.name,
+          description: newRole.description,
+          color: newRole.color,
+          priority: newRole.priority,
+          permissions: rolePermissions
+        }),
+      });
+      if (res.ok) {
+        setNewRole({ id: '', name: '', description: '', color: '#4CAF50', priority: 10 });
+        setRolePermissions([]);
+        setCreateRoleDialogOpen(false);
+        fetchRoles();
+      } else {
+        const data = await res.json();
+        console.error('Failed to create role:', data.error);
+        alert(`Failed to create role: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to create role:', err);
+    } finally {
+      setSavingRole(false);
+    }
+  };
+
+  const handleEditRole = async () => {
+    if (!selectedRole) return;
+    setSavingRole(true);
+    try {
+      const res = await fetch(`${AUTH_API}/auth/admin/roles/${selectedRole.id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: selectedRole.name,
+          description: selectedRole.description,
+          color: selectedRole.color,
+          priority: selectedRole.priority,
+          permissions: rolePermissions
+        }),
+      });
+      if (res.ok) {
+        setEditRoleDialogOpen(false);
+        setSelectedRole(null);
+        setRolePermissions([]);
+        fetchRoles();
+      } else {
+        const data = await res.json();
+        console.error('Failed to update role:', data.error);
+        alert(`Failed to update role: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to update role:', err);
+    } finally {
+      setSavingRole(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    if (['member', 'admin'].includes(roleId)) {
+      alert('Cannot delete built-in roles');
+      return;
+    }
+    if (!confirm(`Are you sure you want to delete the "${roles.find(r => r.id === roleId)?.name}" role?`)) return;
+    
+    try {
+      const res = await fetch(`${AUTH_API}/auth/admin/roles/${roleId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        fetchRoles();
+        fetchUsers(); // Refresh users as their roles may have changed
+      } else {
+        const data = await res.json();
+        console.error('Failed to delete role:', data.error);
+        alert(`Failed to delete role: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to delete role:', err);
+    }
+  };
+
+  const openEditRoleDialog = (role: Role) => {
+    setSelectedRole(role);
+    setRolePermissions(role.permissions?.map(p => p.id) || []);
+    setEditRoleDialogOpen(true);
   };
 
   // User columns
@@ -392,21 +512,72 @@ export default function Admin() {
               className="h-3 w-3 rounded-full" 
               style={{ backgroundColor: role.color }}
             />
-            <span className="font-medium">{role.name}</span>
+            <div className="flex flex-col">
+              <span className="font-medium">{role.name}</span>
+              {role.description && (
+                <span className="text-xs text-muted-foreground">{role.description}</span>
+              )}
+            </div>
           </div>
         );
       },
     },
     {
-      accessorKey: 'priority',
-      header: 'Priority',
+      accessorKey: 'id',
+      header: 'ID',
+      cell: ({ row }) => (
+        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+          {row.getValue('id')}
+        </code>
+      ),
     },
     {
-      accessorKey: 'is_default',
-      header: 'Default',
-      cell: ({ row }) => row.getValue('is_default') ? (
-        <Badge variant="secondary">Default</Badge>
-      ) : null,
+      accessorKey: 'priority',
+      header: 'Priority',
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.getValue('priority')}</Badge>
+      ),
+    },
+    {
+      accessorKey: 'permissions',
+      header: 'Permissions',
+      cell: ({ row }) => {
+        const perms = row.original.permissions || [];
+        return (
+          <span className="text-sm text-muted-foreground">
+            {perms.length} permission{perms.length !== 1 ? 's' : ''}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const role = row.original;
+        const isBuiltIn = ['member', 'admin'].includes(role.id);
+        return (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => openEditRoleDialog(role)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            {!isBuiltIn && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => handleDeleteRole(role.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -525,11 +696,17 @@ export default function Admin() {
 
         <TabsContent value="roles" className="space-y-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Role Management</CardTitle>
-              <CardDescription>
-                Configure roles and their permissions
-              </CardDescription>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Role Management</CardTitle>
+                <CardDescription>
+                  Configure roles and their permissions
+                </CardDescription>
+              </div>
+              <Button onClick={() => setCreateRoleDialogOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Role
+              </Button>
             </CardHeader>
             <CardContent>
               <DataTable 
@@ -629,7 +806,7 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
 
-      {/* Manage Roles Dialog */}
+      {/* Manage User Roles Dialog */}
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -638,7 +815,7 @@ export default function Admin() {
               {selectedUser && `Assign roles to ${selectedUser.global_name || selectedUser.username}`}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
             {roles.map((role) => {
               const hasRole = selectedUser?.roles?.some(r => r.id === role.id);
               return (
@@ -660,7 +837,12 @@ export default function Admin() {
                       className="h-3 w-3 rounded-full" 
                       style={{ backgroundColor: role.color }}
                     />
-                    {role.name}
+                    <div className="flex flex-col">
+                      <span>{role.name}</span>
+                      {role.description && (
+                        <span className="text-xs text-muted-foreground">{role.description}</span>
+                      )}
+                    </div>
                   </Label>
                 </div>
               );
@@ -668,6 +850,252 @@ export default function Admin() {
           </div>
           <DialogFooter>
             <Button onClick={() => setRoleDialogOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Role Dialog */}
+      <Dialog open={createRoleDialogOpen} onOpenChange={setCreateRoleDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create New Role</DialogTitle>
+            <DialogDescription>
+              Define a new role with specific permissions
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="role_id">Role ID</Label>
+                <Input
+                  id="role_id"
+                  placeholder="e.g., bingo_manager"
+                  value={newRole.id}
+                  onChange={(e) => setNewRole({ ...newRole, id: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                />
+                <span className="text-xs text-muted-foreground">Lowercase, no spaces</span>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="role_name">Display Name</Label>
+                <Input
+                  id="role_name"
+                  placeholder="e.g., Bingo Manager"
+                  value={newRole.name}
+                  onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="role_desc">Description</Label>
+              <Input
+                id="role_desc"
+                placeholder="What can this role do?"
+                value={newRole.description}
+                onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="role_color">Color</Label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    id="role_color"
+                    value={newRole.color}
+                    onChange={(e) => setNewRole({ ...newRole, color: e.target.value })}
+                    className="h-10 w-10 rounded border cursor-pointer"
+                  />
+                  <Input
+                    value={newRole.color}
+                    onChange={(e) => setNewRole({ ...newRole, color: e.target.value })}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="role_priority">Priority</Label>
+                <Input
+                  id="role_priority"
+                  type="number"
+                  placeholder="10"
+                  value={newRole.priority}
+                  onChange={(e) => setNewRole({ ...newRole, priority: parseInt(e.target.value) || 0 })}
+                />
+                <span className="text-xs text-muted-foreground">Higher = more important</span>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Permissions</Label>
+              <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto">
+                {Object.entries(
+                  permissions.reduce((acc, perm) => {
+                    if (!acc[perm.category]) acc[perm.category] = [];
+                    acc[perm.category].push(perm);
+                    return acc;
+                  }, {} as Record<string, Permission[]>)
+                ).map(([category, perms]) => (
+                  <div key={category} className="mb-4 last:mb-0">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">{category}</p>
+                    <div className="grid gap-2">
+                      {perms.map((perm) => (
+                        <div key={perm.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`new-perm-${perm.id}`}
+                            checked={rolePermissions.includes(perm.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setRolePermissions([...rolePermissions, perm.id]);
+                              } else {
+                                setRolePermissions(rolePermissions.filter(p => p !== perm.id));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`new-perm-${perm.id}`} className="cursor-pointer text-sm">
+                            {perm.name}
+                            <span className="text-xs text-muted-foreground ml-2">{perm.description}</span>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setCreateRoleDialogOpen(false);
+              setNewRole({ id: '', name: '', description: '', color: '#4CAF50', priority: 10 });
+              setRolePermissions([]);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateRole} disabled={savingRole || !newRole.id.trim() || !newRole.name.trim()}>
+              {savingRole && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Role
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Role Dialog */}
+      <Dialog open={editRoleDialogOpen} onOpenChange={(open) => {
+        setEditRoleDialogOpen(open);
+        if (!open) {
+          setSelectedRole(null);
+          setRolePermissions([]);
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Role: {selectedRole?.name}</DialogTitle>
+            <DialogDescription>
+              Modify role settings and permissions
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRole && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Role ID</Label>
+                  <code className="text-sm bg-muted px-2 py-1.5 rounded">{selectedRole.id}</code>
+                  <span className="text-xs text-muted-foreground">Cannot be changed</span>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_role_name">Display Name</Label>
+                  <Input
+                    id="edit_role_name"
+                    value={selectedRole.name}
+                    onChange={(e) => setSelectedRole({ ...selectedRole, name: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit_role_desc">Description</Label>
+                <Input
+                  id="edit_role_desc"
+                  value={selectedRole.description || ''}
+                  onChange={(e) => setSelectedRole({ ...selectedRole, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_role_color">Color</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      id="edit_role_color"
+                      value={selectedRole.color}
+                      onChange={(e) => setSelectedRole({ ...selectedRole, color: e.target.value })}
+                      className="h-10 w-10 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={selectedRole.color}
+                      onChange={(e) => setSelectedRole({ ...selectedRole, color: e.target.value })}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_role_priority">Priority</Label>
+                  <Input
+                    id="edit_role_priority"
+                    type="number"
+                    value={selectedRole.priority}
+                    onChange={(e) => setSelectedRole({ ...selectedRole, priority: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Permissions ({rolePermissions.length} selected)</Label>
+                <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto">
+                  {Object.entries(
+                    permissions.reduce((acc, perm) => {
+                      if (!acc[perm.category]) acc[perm.category] = [];
+                      acc[perm.category].push(perm);
+                      return acc;
+                    }, {} as Record<string, Permission[]>)
+                  ).map(([category, perms]) => (
+                    <div key={category} className="mb-4 last:mb-0">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">{category}</p>
+                      <div className="grid gap-2">
+                        {perms.map((perm) => (
+                          <div key={perm.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-perm-${perm.id}`}
+                              checked={rolePermissions.includes(perm.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setRolePermissions([...rolePermissions, perm.id]);
+                                } else {
+                                  setRolePermissions(rolePermissions.filter(p => p !== perm.id));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`edit-perm-${perm.id}`} className="cursor-pointer text-sm">
+                              {perm.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setEditRoleDialogOpen(false);
+              setSelectedRole(null);
+              setRolePermissions([]);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditRole} disabled={savingRole}>
+              {savingRole && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
