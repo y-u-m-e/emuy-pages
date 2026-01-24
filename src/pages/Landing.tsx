@@ -71,7 +71,11 @@ export default function Landing() {
       {/* Features Grid */}
       <section className="space-y-6">
         <div className="text-center">
-          <img src="/images/anime_pfp_landing.gif" alt="anime-pfp-landing" className="w-full h-full object-cover" />
+          <img
+            src="/images/anime_pfp_landing.gif"
+            alt="anime-pfp-landing"
+            className="w-full h-full max-h-512px object-cover"
+          />
         </div>
       </section>
 
