@@ -498,6 +498,70 @@ export default function Dashboard() {
               </a>
             </Card>
           </div>
+
+          {/* Staging/Dev Links - Only for developers */}
+          {(isAdmin || hasPermission('view_devops')) && (
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="text-amber-400">🚧</span> Staging Environments
+                </CardTitle>
+                <CardDescription>Preview deployments for testing (dev branch)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  <a 
+                    href="https://dev.emuy-pages.pages.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background border border-border/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary text-sm">🏠</div>
+                    <div>
+                      <p className="text-sm font-medium">Emuy (Dev)</p>
+                      <p className="text-xs text-muted-foreground">Main dashboard</p>
+                    </div>
+                  </a>
+                  <a 
+                    href="https://dev.ironforged-pages.pages.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background border border-border/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded bg-amber-500/10 flex items-center justify-center text-amber-400 text-sm">⚔️</div>
+                    <div>
+                      <p className="text-sm font-medium">Ironforged (Dev)</p>
+                      <p className="text-xs text-muted-foreground">Tile events</p>
+                    </div>
+                  </a>
+                  <a 
+                    href="https://dev.bingo-pages.pages.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background border border-border/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded bg-purple-500/10 flex items-center justify-center text-purple-400 text-sm">🎲</div>
+                    <div>
+                      <p className="text-sm font-medium">Bingo (Dev)</p>
+                      <p className="text-xs text-muted-foreground">Competitions</p>
+                    </div>
+                  </a>
+                  <a 
+                    href="https://dev.docs-pages.pages.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background border border-border/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-400 text-sm">📚</div>
+                    <div>
+                      <p className="text-sm font-medium">Docs (Dev)</p>
+                      <p className="text-xs text-muted-foreground">Documentation</p>
+                    </div>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">

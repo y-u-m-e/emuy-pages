@@ -7,7 +7,7 @@
  * Production URLs bypass this check.
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2 } from 'lucide-react';
@@ -27,8 +27,27 @@ function isStaging(): boolean {
   );
 }
 
+// Handle auth token from URL (for .pages.dev OAuth callbacks)
+function handleUrlToken() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlToken = urlParams.get('auth_token');
+  if (urlToken) {
+    // Store in localStorage for the AuthContext to pick up
+    localStorage.setItem('staging_auth_token', urlToken);
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
 export default function StagingGate({ children }: StagingGateProps) {
   const { user, loading, isAdmin, hasPermission, login } = useAuth();
+  
+  // Handle URL token on mount
+  useEffect(() => {
+    if (isStaging()) {
+      handleUrlToken();
+    }
+  }, []);
   
   // Production - no gate needed
   if (!isStaging()) {
@@ -108,4 +127,3 @@ export default function StagingGate({ children }: StagingGateProps) {
     </>
   );
 }
-

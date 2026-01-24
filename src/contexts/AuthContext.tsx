@@ -49,8 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     
     try {
+      // Check for staging token in localStorage (for .pages.dev preview URLs)
+      const stagingToken = localStorage.getItem('staging_auth_token');
+      
+      const headers: Record<string, string> = {};
+      if (stagingToken) {
+        headers['Authorization'] = `Bearer ${stagingToken}`;
+      }
+      
       const response = await fetch(`${AUTH_API}/auth/me`, {
         credentials: 'include',
+        headers,
       });
       
       if (response.ok) {
@@ -65,6 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRoles([]);
           setPermissions([]);
           setIsSuperAdmin(false);
+          // Clear invalid token
+          if (stagingToken) {
+            localStorage.removeItem('staging_auth_token');
+          }
         }
       }
     } catch (err) {
