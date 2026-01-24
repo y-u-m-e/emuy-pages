@@ -32,7 +32,7 @@ export default function Landing() {
         </h1>
         
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-          The complete management dashboard for personal projects and tools under yume.
+          The complete management dashboard for personal projects and tools affiliated with yume.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -71,7 +71,7 @@ export default function Landing() {
       {/* Features Grid */}
       <section className="space-y-6">
         <div className="text-center">
-          <img src="/images/yume-dashboard.gif" alt="yume-dashboard" className="w-full h-full object-cover" />
+          <img src="/images/anime_pfp_landing.gif" alt="anime-pfp-landing" className="w-full h-full object-cover" />
         </div>
       </section>
 
