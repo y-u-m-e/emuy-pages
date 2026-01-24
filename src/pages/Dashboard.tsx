@@ -140,18 +140,19 @@ export default function Dashboard() {
           }
         }
         
-        // Fetch attendance stats if has permission
-        if (canViewCruddy) {
-          const statsRes = await fetch(`${ATTENDANCE_API}/attendance/stats`, { credentials: 'include' });
-          if (statsRes.ok) {
-            const data = await statsRes.json();
-            setStats(prev => ({ 
-              ...prev, 
-              totalAttendance: data.total_records || 0,
-              totalEvents: data.unique_events || 0,
-              activeUsers: data.unique_players || 0,
-            }));
-          }
+        // Fetch attendance stats (available to any authenticated user)
+        const statsRes = await fetch(`${ATTENDANCE_API}/attendance/stats`, { credentials: 'include' });
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          console.log('Attendance stats:', data);
+          setStats(prev => ({ 
+            ...prev, 
+            totalAttendance: data.total_records || 0,
+            totalEvents: data.unique_events || 0,
+            activeUsers: data.unique_players || 0,
+          }));
+        } else {
+          console.warn('Failed to fetch attendance stats:', statsRes.status);
         }
       } catch (err) {
         console.error('Failed to fetch stats:', err);
@@ -165,7 +166,7 @@ export default function Dashboard() {
     } else {
       setLoading(false);
     }
-  }, [user, isAdmin, canViewCruddy]);
+  }, [user, isAdmin]);
 
   if (!user) {
     return (
