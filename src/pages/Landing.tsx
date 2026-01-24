@@ -5,49 +5,11 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
-  ClipboardList, 
-  Gamepad2, 
-  Code, 
-  ArrowRight,
-  Zap,
-  Shield,
-  Users,
-  TrendingUp
+  ArrowRight
 } from 'lucide-react';
 
-const features = [
-  {
-    icon: ClipboardList,
-    title: 'Attendance Tracking',
-    description: 'Track clan event attendance with the Cruddy Panel. View leaderboards, manage records, and monitor participation.',
-    badge: 'Core',
-    link: '/cruddy-panel'
-  },
-  {
-    icon: Gamepad2,
-    title: 'Tile Events',
-    description: 'Participate in tile-based progression events. Complete challenges, upload screenshots, and track your progress.',
-    badge: 'Events',
-    href: 'https://ironforged.gg'
-  },
-  {
-    icon: Code,
-    title: 'API Access',
-    description: 'Integrate with our unified API for OSRS data, attendance records, and event management.',
-    badge: 'Developer',
-    href: 'https://docs.emuy.gg'
-  },
-];
 
-const stats = [
-  { label: 'Active Members', value: '150+', icon: Users },
-  { label: 'Events Tracked', value: '500+', icon: TrendingUp },
-  { label: 'Uptime', value: '99.9%', icon: Zap },
-  { label: 'Secure', value: 'RBAC', icon: Shield },
-];
 
 export default function Landing() {
   const { user, login } = useAuth();
@@ -65,13 +27,12 @@ export default function Landing() {
         </div>
         
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-          <span className="text-foreground">Emuy</span>
-          <span className="text-gradient"> Tools</span>
+          <span className="text-foreground">yume</span>
+          <span className="text-gradient"> Dashboard</span>
         </h1>
         
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-          The complete management dashboard for OSRS clans. Track attendance, manage events, 
-          and keep your community organized.
+          The complete management dashboard for personal projects and tools under yume.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -107,96 +68,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Stats Bar */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.label} className="bg-card/50 border-border/50">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Icon className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </section>
-
       {/* Features Grid */}
       <section className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold">Everything you need</h2>
-          <p className="text-muted-foreground mt-2">
-            Tools built specifically for OSRS clan management
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-6">
-          {features.map((feature) => {
-            const Icon = feature.icon;
-            const isExternal = 'href' in feature;
-            
-            const cardContent = (
-              <>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-primary/10 w-fit">
-                      <Icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {feature.badge}
-                    </Badge>
-                  </div>
-                  <CardTitle className="mt-4 group-hover:text-primary transition-colors">
-                    {feature.title}
-                  </CardTitle>
-                  <CardDescription>
-                    {feature.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <span className="inline-flex items-center gap-1 text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                    {isExternal ? 'Visit' : 'Open'}
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </CardContent>
-              </>
-            );
-            
-            if (isExternal) {
-              return (
-                <Card 
-                  key={feature.title} 
-                  className="group hover:border-primary/50 transition-colors cursor-pointer"
-                >
-                  <a 
-                    href={feature.href} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    {cardContent}
-                  </a>
-                </Card>
-              );
-            }
-            
-            return (
-              <Card 
-                key={feature.title} 
-                className="group hover:border-primary/50 transition-colors cursor-pointer"
-              >
-                <Link to={feature.link!} className="block">
-                  {cardContent}
-                </Link>
-              </Card>
-            );
-          })}
+          <img src="/images/yume-dashboard.gif" alt="yume-dashboard" className="w-full h-full object-cover" />
         </div>
       </section>
 
