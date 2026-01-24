@@ -504,10 +504,12 @@ export default function Dashboard() {
           {/* Monday.com Kanban Board (DevOps users only) */}
           {canViewDevOps && (
             <MondayKanban
-              mode="link"
-              title="Project Kanban"
-              description="Track development tasks and progress"
-              boardUrl="https://monday.com"
+              mode="embed"
+              title="Project Neko Gyangu"
+              description="Track development Ironforged and yume projects"
+              embedUrl="https://view.monday.com/embed/18397071076-62b29329eb0a80967ad26642ab756d14?r=use1" // Add your Monday.com embed URL here
+              boardUrl="https://yume-itai.monday.com/boards/18397071076" // Link to open full board
+              height={450}
               className="mt-4"
             />
           )}
