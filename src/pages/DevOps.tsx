@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   GitBranch, 
+  GitMerge,
   RefreshCw, 
   ExternalLink, 
   CheckCircle2, 
@@ -46,7 +47,8 @@ import {
   Gamepad2,
   FileText,
   Rocket,
-  Settings
+  Settings,
+  Eye
 } from 'lucide-react';
 
 // =============================================================================
@@ -110,6 +112,26 @@ interface SeshSyncResult {
   duration?: number;
   timestamp?: string;
   error?: string;
+}
+
+interface DeployStatus {
+  repo: string;
+  status: 'idle' | 'checking' | 'merging' | 'success' | 'error';
+  message?: string;
+  devBranch?: {
+    sha: string;
+    message: string;
+    date: string;
+    author: string;
+  };
+  mainBranch?: {
+    sha: string;
+    message: string;
+    date: string;
+    author: string;
+  };
+  behindBy?: number;
+  aheadBy?: number;
 }
 
 // =============================================================================
@@ -206,6 +228,9 @@ export default function DevOps() {
   const [seshSyncing, setSeshSyncing] = useState(false);
   const [seshLastSync, setSeshLastSync] = useState<SeshSyncResult | null>(null);
   const [loadingSeshStatus, setLoadingSeshStatus] = useState(true);
+  
+  // Deployment state
+  const [deployStatus, setDeployStatus] = useState<Record<string, DeployStatus>>({});
 
   // ==========================================================================
   // DATA FETCHING
@@ -379,6 +404,169 @@ export default function DevOps() {
       setSeshSyncing(false);
     }
   };
+
+  // ==========================================================================
+  // DEPLOYMENT FUNCTIONS
+  // ==========================================================================
+
+  // Check branch comparison for a repo
+  const checkBranchComparison = async (repoName: string) => {
+    const token = localStorage.getItem('github_pat');
+    if (!token) {
+      setDeployStatus(prev => ({
+        ...prev,
+        [repoName]: {
+          repo: repoName,
+          status: 'error',
+          message: 'GitHub token not configured'
+        }
+      }));
+      return;
+    }
+
+    setDeployStatus(prev => ({
+      ...prev,
+      [repoName]: {
+        repo: repoName,
+        status: 'checking'
+      }
+    }));
+
+    try {
+      const headers = { Authorization: `token ${token}` };
+      
+      // Fetch both branches
+      const [devRes, mainRes] = await Promise.all([
+        fetch(`https://api.github.com/repos/${GITHUB_ORG}/${repoName}/commits/dev`, { headers }),
+        fetch(`https://api.github.com/repos/${GITHUB_ORG}/${repoName}/commits/main`, { headers })
+      ]);
+
+      if (!devRes.ok || !mainRes.ok) {
+        throw new Error('Failed to fetch branch info');
+      }
+
+      const [devData, mainData] = await Promise.all([devRes.json(), mainRes.json()]);
+
+      // Compare branches
+      const compareRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/compare/main...dev`,
+        { headers }
+      );
+      
+      let aheadBy = 0;
+      let behindBy = 0;
+      
+      if (compareRes.ok) {
+        const compareData = await compareRes.json();
+        aheadBy = compareData.ahead_by || 0;
+        behindBy = compareData.behind_by || 0;
+      }
+
+      setDeployStatus(prev => ({
+        ...prev,
+        [repoName]: {
+          repo: repoName,
+          status: 'idle',
+          devBranch: {
+            sha: devData.sha?.slice(0, 7),
+            message: devData.commit?.message?.split('\n')[0] || 'No message',
+            date: devData.commit?.committer?.date || '',
+            author: devData.commit?.author?.name || 'Unknown'
+          },
+          mainBranch: {
+            sha: mainData.sha?.slice(0, 7),
+            message: mainData.commit?.message?.split('\n')[0] || 'No message',
+            date: mainData.commit?.committer?.date || '',
+            author: mainData.commit?.author?.name || 'Unknown'
+          },
+          aheadBy,
+          behindBy
+        }
+      }));
+    } catch (err) {
+      setDeployStatus(prev => ({
+        ...prev,
+        [repoName]: {
+          repo: repoName,
+          status: 'error',
+          message: err instanceof Error ? err.message : 'Failed to check branches'
+        }
+      }));
+    }
+  };
+
+  // Merge dev into main
+  const mergeBranches = async (repoName: string) => {
+    const token = localStorage.getItem('github_pat');
+    if (!token) {
+      alert('GitHub token not configured');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to merge dev → main for ${repoName}?\n\nThis will deploy to production.`)) {
+      return;
+    }
+
+    setDeployStatus(prev => ({
+      ...prev,
+      [repoName]: {
+        ...prev[repoName],
+        status: 'merging'
+      }
+    }));
+
+    try {
+      const headers = {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const res = await fetch(
+        `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/merges`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            base: 'main',
+            head: 'dev',
+            commit_message: `Merge dev into main - Deploy to production`
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Merge failed');
+      }
+
+      setDeployStatus(prev => ({
+        ...prev,
+        [repoName]: {
+          ...prev[repoName],
+          status: 'success',
+          message: 'Successfully merged! Deployment in progress...'
+        }
+      }));
+
+      // Refresh after a short delay
+      setTimeout(() => checkBranchComparison(repoName), 3000);
+    } catch (err) {
+      setDeployStatus(prev => ({
+        ...prev,
+        [repoName]: {
+          ...prev[repoName],
+          status: 'error',
+          message: err instanceof Error ? err.message : 'Merge failed'
+        }
+      }));
+    }
+  };
+
+  // Check all repos on mount
+  const checkAllDeployments = useCallback(() => {
+    const pagesRepoNames = REPOS.filter(r => r.type === 'pages').map(r => r.name);
+    pagesRepoNames.forEach(name => checkBranchComparison(name));
+  }, []);
 
   // ==========================================================================
   // ACTIONS
@@ -565,6 +753,10 @@ export default function DevOps() {
               <GitBranch className="h-4 w-4" />
               Repositories
             </TabsTrigger>
+            <TabsTrigger value="deploy" className="flex items-center gap-2">
+              <Rocket className="h-4 w-4" />
+              Deploy
+            </TabsTrigger>
             <TabsTrigger value="tools" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Tools
@@ -617,6 +809,223 @@ export default function DevOps() {
                 ))}
               </div>
             </div>
+          </TabsContent>
+
+          {/* Deploy Tab */}
+          <TabsContent value="deploy" className="space-y-6">
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Rocket className="h-5 w-5 text-amber-400" />
+                      Deployment Manager
+                    </CardTitle>
+                    <CardDescription>
+                      Merge staging (dev) branches to production (main) for Cloudflare Pages deployments
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={checkAllDeployments}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh All
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Info Banner */}
+                <div className="bg-background/50 rounded-lg p-4 border border-border/50">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10">
+                      <GitMerge className="h-4 w-4 text-amber-400" />
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium">How it works:</p>
+                      <ol className="list-decimal list-inside text-muted-foreground mt-1 space-y-1">
+                        <li>Make changes on the <code className="px-1 bg-secondary rounded">dev</code> branch</li>
+                        <li>Test on staging URL (e.g., dev.emuy-pages.pages.dev)</li>
+                        <li>Click "Merge to Production" to deploy to production</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deployment Cards */}
+                <div className="grid gap-4">
+                  {REPOS.filter(r => r.type === 'pages').map((repo) => {
+                    const status = deployStatus[repo.name];
+                    const isChecking = status?.status === 'checking';
+                    const isMerging = status?.status === 'merging';
+                    const hasChanges = (status?.aheadBy || 0) > 0;
+                    const isUpToDate = status?.devBranch?.sha === status?.mainBranch?.sha;
+
+                    return (
+                      <Card key={repo.name} className="overflow-hidden">
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            {/* Repo Info */}
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                {repo.icon}
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">{repo.displayName}</h4>
+                                <p className="text-sm text-muted-foreground">{repo.description}</p>
+                                <div className="flex items-center gap-3 mt-2 text-xs">
+                                  <a 
+                                    href={repo.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-primary hover:underline"
+                                  >
+                                    <Globe className="h-3 w-3" />
+                                    Production
+                                  </a>
+                                  <a 
+                                    href={`https://dev.${repo.name}.pages.dev`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-amber-400 hover:underline"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                    Staging
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => checkBranchComparison(repo.name)}
+                                    disabled={isChecking || isMerging}
+                                  >
+                                    {isChecking ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Check branch status</TooltipContent>
+                              </Tooltip>
+
+                              <Button
+                                variant={hasChanges ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => mergeBranches(repo.name)}
+                                disabled={isChecking || isMerging || isUpToDate || !status}
+                                className={hasChanges ? "bg-amber-500 hover:bg-amber-600 text-black" : ""}
+                              >
+                                {isMerging ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Merging...
+                                  </>
+                                ) : (
+                                  <>
+                                    <GitMerge className="h-4 w-4 mr-2" />
+                                    {isUpToDate ? 'Up to date' : 'Deploy to Prod'}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Branch Comparison */}
+                          {status && status.status !== 'checking' && (
+                            <div className="mt-4 pt-4 border-t border-border/50">
+                              {status.status === 'error' ? (
+                                <div className="flex items-center gap-2 text-sm text-destructive">
+                                  <XCircle className="h-4 w-4" />
+                                  {status.message}
+                                </div>
+                              ) : status.status === 'success' ? (
+                                <div className="flex items-center gap-2 text-sm text-green-500">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  {status.message}
+                                </div>
+                              ) : (
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  {/* Dev Branch */}
+                                  <div className="bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Badge variant="outline" className="text-amber-400 border-amber-500/30">
+                                        dev (staging)
+                                      </Badge>
+                                      {hasChanges && (
+                                        <Badge className="bg-amber-500 text-black text-xs">
+                                          +{status.aheadBy} ahead
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {status.devBranch && (
+                                      <div className="text-xs space-y-1">
+                                        <p className="font-mono text-primary">{status.devBranch.sha}</p>
+                                        <p className="text-muted-foreground truncate" title={status.devBranch.message}>
+                                          {status.devBranch.message}
+                                        </p>
+                                        <p className="text-muted-foreground/70">
+                                          {status.devBranch.author} • {new Date(status.devBranch.date).toLocaleDateString()}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Main Branch */}
+                                  <div className="bg-green-500/5 rounded-lg p-3 border border-green-500/20">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Badge variant="outline" className="text-green-400 border-green-500/30">
+                                        main (production)
+                                      </Badge>
+                                      {isUpToDate && (
+                                        <Badge variant="outline" className="text-green-400 border-green-500/30 text-xs">
+                                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                                          synced
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {status.mainBranch && (
+                                      <div className="text-xs space-y-1">
+                                        <p className="font-mono text-primary">{status.mainBranch.sha}</p>
+                                        <p className="text-muted-foreground truncate" title={status.mainBranch.message}>
+                                          {status.mainBranch.message}
+                                        </p>
+                                        <p className="text-muted-foreground/70">
+                                          {status.mainBranch.author} • {new Date(status.mainBranch.date).toLocaleDateString()}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Loading State */}
+                          {(!status || status.status === 'checking') && (
+                            <div className="mt-4 pt-4 border-t border-border/50">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                {status?.status === 'checking' ? 'Checking branches...' : 'Click refresh to check branch status'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Tools Tab */}
