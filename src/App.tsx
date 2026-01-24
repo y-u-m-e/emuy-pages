@@ -12,6 +12,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
+import StagingGate from '@/components/StagingGate'
 
 // Pages
 import Landing from '@/pages/Landing'
@@ -24,16 +25,18 @@ import Profile from '@/pages/Profile'
 function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Landing />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="cruddy-panel" element={<CruddyPanel />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="admin" element={<Admin />} />
-          <Route path="devops" element={<DevOps />} />
-        </Route>
-      </Routes>
+      <StagingGate>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Landing />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="cruddy-panel" element={<CruddyPanel />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="admin" element={<Admin />} />
+            <Route path="devops" element={<DevOps />} />
+          </Route>
+        </Routes>
+      </StagingGate>
     </AuthProvider>
   )
 }
