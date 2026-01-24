@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* GitHub-inspired Dark Minimal Theme */
+    --background: 220 13% 5%;           /* #0D1117 - Main background */
+    --foreground: 210 17% 90%;          /* #E6EDF3 - Primary text */
+    
+    --card: 220 13% 9%;                 /* #161B22 - Elevated surfaces */
+    --card-foreground: 210 17% 90%;
+    
+    --popover: 220 13% 9%;
+    --popover-foreground: 210 17% 90%;
+    
+    --primary: 163 72% 41%;             /* #21C55D - Green accent (success) */
+    --primary-foreground: 220 13% 5%;
+    
+    --secondary: 220 13% 14%;           /* #21262D - Secondary backgrounds */
+    --secondary-foreground: 210 17% 90%;
+    
+    --muted: 220 13% 14%;
+    --muted-foreground: 215 14% 52%;    /* #7D8590 - Muted text */
+    
+    --accent: 212 92% 45%;              /* #2563EB - Blue accent */
+    --accent-foreground: 210 17% 98%;
+    
+    --destructive: 0 72% 51%;           /* #EF4444 - Error/danger */
+    --destructive-foreground: 210 17% 98%;
+    
+    --border: 215 14% 22%;              /* #30363D - Borders */
+    --input: 215 14% 22%;
+    --ring: 163 72% 41%;                /* Focus ring - green */
+    
+    /* Status colors */
+    --success: 163 72% 41%;             /* #21C55D */
+    --warning: 38 92% 50%;              /* #F59E0B */
+    --info: 212 92% 45%;                /* #2563EB */
+    
+    /* Chart colors */
+    --chart-1: 163 72% 41%;
+    --chart-2: 212 92% 45%;
+    --chart-3: 280 65% 60%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 72% 51%;
+    
+    --radius: 0.5rem;
+  }
+
+  /* No separate .dark class needed - dark is default */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 220 13% 5%;
+    --card: 0 0% 98%;
+    --card-foreground: 220 13% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 5%;
+    --primary: 163 72% 41%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 96%;
+    --secondary-foreground: 220 13% 5%;
+    --muted: 220 13% 96%;
+    --muted-foreground: 215 14% 40%;
+    --accent: 212 92% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 163 72% 41%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100vh;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer components {
+  /* Glass-like card effect */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50;
+  }
+  
+  /* Glow effect for accents */
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.3);
+  }
+  
+  /* Status indicators */
+  .status-success {
+    @apply bg-green-500/10 text-green-400 border-green-500/20;
+  }
+  
+  .status-warning {
+    @apply bg-yellow-500/10 text-yellow-400 border-yellow-500/20;
+  }
+  
+  .status-error {
+    @apply bg-red-500/10 text-red-400 border-red-500/20;
+  }
+  
+  .status-info {
+    @apply bg-blue-500/10 text-blue-400 border-blue-500/20;
+  }
+}
+
+@layer utilities {
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+  
+  /* Subtle hover states */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-0.5;
+  }
+  
+  /* Focus visible styles */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}

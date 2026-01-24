@@ -1,0 +1,157 @@
+/**
+ * API Client for Yume Tools
+ * Uses the central API gateway: https://api.emuy.gg
+ */
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+
+// Types
+export interface User {
+  id: string;
+  username: string;
+  discriminator: string;
+  avatar: string | null;
+  global_name: string | null;
+}
+
+export interface AttendanceRecord {
+  id: number;
+  name: string;
+  event: string;
+  date: string;
+  host?: string;
+  recorded_at?: string;
+}
+
+export interface LeaderboardEntry {
+  name: string;
+  count: number;
+}
+
+// API Response wrapper
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+// Fetch wrapper with credentials
+async function apiFetch<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.error || `HTTP ${response.status}`,
+      };
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error',
+    };
+  }
+}
+
+// Records API (Cruddy Panel) - uses /attendance endpoints
+export const records = {
+  async getAll(params?: {
+    page?: number;
+    limit?: number;
+    name?: string;
+    event?: string;
+    host?: string;
+    start?: string;
+    end?: string;
+  }): Promise<ApiResponse<{ results: AttendanceRecord[]; total: number; page: number; limit: number }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.name) searchParams.set('name', params.name);
+    if (params?.event) searchParams.set('event', params.event);
+    if (params?.host) searchParams.set('host', params.host);
+    if (params?.start) searchParams.set('start', params.start);
+    if (params?.end) searchParams.set('end', params.end);
+
+    const query = searchParams.toString();
+    return apiFetch(`/attendance/records${query ? `?${query}` : ''}`);
+  },
+
+  async add(record: {
+    name: string;
+    event: string;
+    date: string;
+    host?: string;
+  }): Promise<ApiResponse<{ success: boolean; id: number }>> {
+    return apiFetch('/attendance/records', {
+      method: 'POST',
+      body: JSON.stringify(record),
+    });
+  },
+
+  async update(id: number, record: {
+    name: string;
+    event: string;
+    date: string;
+    host?: string;
+  }): Promise<ApiResponse<{ success: boolean }>> {
+    return apiFetch(`/attendance/records/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(record),
+    });
+  },
+  
+  async setEventHost(event: string, date: string, host: string): Promise<ApiResponse<{ success: boolean; updated: number }>> {
+    return apiFetch('/attendance/events/host', {
+      method: 'PUT',
+      body: JSON.stringify({ event, date, host }),
+    });
+  },
+
+  async renameHost(oldHost: string, newHost: string): Promise<ApiResponse<{ success: boolean; updated: number }>> {
+    return apiFetch('/attendance/hosts/rename', {
+      method: 'PUT',
+      body: JSON.stringify({ old_host: oldHost, new_host: newHost }),
+    });
+  },
+
+  async delete(id: number): Promise<ApiResponse<{ success: boolean }>> {
+    return apiFetch(`/attendance/records/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getLeaderboard(params?: {
+    top?: number;
+    start?: string;
+    end?: string;
+  }): Promise<ApiResponse<LeaderboardEntry[]>> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('top', (params?.top || 50).toString());
+    if (params?.start) searchParams.set('start', params.start);
+    if (params?.end) searchParams.set('end', params.end);
+
+    const query = searchParams.toString();
+    const response = await apiFetch<{ results: LeaderboardEntry[] }>(`/attendance?${query}`);
+    if (response.success && response.data?.results) {
+      return { success: true, data: response.data.results };
+    }
+    return { success: false, error: response.error || 'Failed to load leaderboard' };
+  },
+};
+
