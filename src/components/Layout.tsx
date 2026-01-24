@@ -32,7 +32,9 @@ import {
   Grid3X3,
   Home,
   Search,
-  Bell
+  Bell,
+  Code2,
+  ExternalLink
 } from 'lucide-react';
 
 interface NavItem {
@@ -61,6 +63,13 @@ const externalNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { path: '/admin', label: 'Admin Panel', icon: Shield },
   { path: '/devops', label: 'DevOps', icon: Settings },
+];
+
+const stagingNavItems: NavItem[] = [
+  { path: 'https://dev.emuy-pages.pages.dev', label: 'Emuy (Dev)', icon: Home, external: true },
+  { path: 'https://dev.ironforged-pages.pages.dev', label: 'Ironforged (Dev)', icon: Gamepad2, external: true },
+  { path: 'https://dev.bingo-pages.pages.dev', label: 'Bingo (Dev)', icon: Grid3X3, external: true },
+  { path: 'https://dev.docs-pages.pages.dev', label: 'Docs (Dev)', icon: BookOpen, external: true },
 ];
 
 export default function Layout() {
@@ -186,6 +195,36 @@ export default function Layout() {
               </div>
               {adminNavItems.map((item) => (
                 <NavLink key={item.path} item={item} onClick={onNavigate} />
+              ))}
+            </>
+          )}
+          
+          {/* Developer / Staging - requires view_devops */}
+          {user && (isAdmin || hasPermission('view_devops')) && (
+            <>
+              <div className="my-2">
+                <Separator />
+                <p className="px-3 py-2 text-xs font-semibold text-amber-500 uppercase tracking-wider flex items-center gap-2">
+                  <Code2 className="h-3 w-3" />
+                  Staging
+                </p>
+              </div>
+              {stagingNavItems.map((item) => (
+                <a
+                  key={item.path}
+                  href={item.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-amber-500/10",
+                    "text-amber-500/70 hover:text-amber-500"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+                </a>
               ))}
             </>
           )}
