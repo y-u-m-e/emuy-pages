@@ -141,10 +141,15 @@ export default function CruddyPanel() {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/attendance/leaderboard?limit=20`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/attendance?top=20`, { credentials: 'include' });
+      if (!res.ok) {
+        console.error('Leaderboard API error:', res.status);
+        return;
+      }
       const data = await res.json();
+      console.log('Leaderboard data:', data);
       if (data.leaderboard) {
-        setLeaderboard(data.leaderboard.map((entry: LeaderboardEntry, idx: number) => ({
+        setLeaderboard(data.leaderboard.map((entry: { name: string; count: number }, idx: number) => ({
           ...entry,
           rank: idx + 1,
         })));

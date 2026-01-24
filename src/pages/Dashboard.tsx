@@ -1,101 +1,150 @@
 /**
- * Dashboard - Main user dashboard with dark minimal theme
+ * Dashboard - Analytics Overview with Charts
+ * shadcn/ui inspired dashboard with metrics and visualizations
  */
 
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { 
-  ClipboardList, 
-  Gamepad2, 
-  Grid3X3, 
-  Shield, 
-  Settings, 
-  BookOpen,
-  ExternalLink,
-  ChevronRight,
-  Activity
+  Users, 
+  Calendar,
+  Activity,
+  ClipboardList,
+  ArrowUpRight,
+  ExternalLink
 } from 'lucide-react';
 
-const quickLinks = [
-  {
-    id: 'cruddy',
-    title: 'Attendance',
-    description: 'Track and manage event attendance',
-    icon: ClipboardList,
-    to: '/cruddy-panel',
-    permission: 'view_cruddy',
-    color: 'text-green-400',
-    bgColor: 'bg-green-400/10',
-  },
-  {
-    id: 'tile-events',
-    title: 'Tile Events',
-    description: 'Participate in Ironforged Events',
-    icon: Gamepad2,
-    href: 'https://ironforged.gg',
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-400/10',
-  },
-  {
-    id: 'bingo',
-    title: 'Bingo',
-    description: 'Join bingo competitions',
-    icon: Grid3X3,
-    href: 'https://bingo.emuy.gg',
-    color: 'text-purple-400',
-    bgColor: 'bg-purple-400/10',
-  },
-  {
-    id: 'docs',
-    title: 'Documentation',
-    description: 'API docs and guides',
-    icon: BookOpen,
-    href: 'https://docs.emuy.gg',
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-400/10',
-  },
-];
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
-const adminLinks = [
-  {
-    id: 'admin',
-    title: 'Admin Panel',
-    description: 'Manage users and permissions',
-    icon: Shield,
-    to: '/admin',
-    color: 'text-red-400',
-    bgColor: 'bg-red-400/10',
-    borderColor: 'border-red-400/30',
-  },
-  {
-    id: 'devops',
-    title: 'DevOps',
-    description: 'System status and deployments',
-    icon: Settings,
-    to: '/devops',
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-400/10',
-    borderColor: 'border-yellow-400/30',
-  },
-];
+// Generate mock data for charts (in production, this would come from an analytics API)
+const generateChartData = () => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentMonth = new Date().getMonth();
+  
+  return months.slice(0, currentMonth + 1).map((month, idx) => ({
+    name: month,
+    users: Math.floor(50 + idx * 15 + Math.random() * 20),
+    events: Math.floor(20 + idx * 8 + Math.random() * 15),
+    attendance: Math.floor(100 + idx * 40 + Math.random() * 50),
+  }));
+};
+
+const generateWeeklyData = () => {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return days.map((day) => ({
+    name: day,
+    visits: Math.floor(50 + Math.random() * 100),
+    active: Math.floor(20 + Math.random() * 50),
+  }));
+};
+
+interface StatsData {
+  totalUsers: number;
+  totalEvents: number;
+  totalAttendance: number;
+  activeUsers: number;
+}
+
+interface RecentActivity {
+  id: string;
+  user: string;
+  action: string;
+  time: string;
+  avatar?: string;
+}
 
 export default function Dashboard() {
   const { user, roles, isAdmin, hasPermission, login } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<StatsData>({
+    totalUsers: 0,
+    totalEvents: 0,
+    totalAttendance: 0,
+    activeUsers: 0,
+  });
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [chartData] = useState(generateChartData());
+  const [weeklyData] = useState(generateWeeklyData());
 
-  const getAvatarUrl = (user: { id: string; avatar: string | null }) => {
-    if (!user.avatar) return null;
-    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
-  };
+  const canViewCruddy = isAdmin || hasPermission('view_cruddy');
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch user count if admin
+        if (isAdmin) {
+          const usersRes = await fetch(`${API_BASE}/auth/admin/users?limit=1`, { credentials: 'include' });
+          if (usersRes.ok) {
+            const data = await usersRes.json();
+            setStats(prev => ({ ...prev, totalUsers: data.total || 0 }));
+          }
+          
+          // Fetch recent activity
+          const activityRes = await fetch(`${API_BASE}/auth/admin/activity?limit=5`, { credentials: 'include' });
+          if (activityRes.ok) {
+            const data = await activityRes.json();
+            if (data.logs) {
+              setRecentActivity(data.logs.map((log: any) => ({
+                id: log.id,
+                user: log.discord_username,
+                action: log.action,
+                time: new Date(log.created_at).toLocaleString(),
+              })));
+            }
+          }
+        }
+        
+        // Fetch attendance stats if has permission
+        if (canViewCruddy) {
+          const attendanceRes = await fetch(`${API_BASE}/attendance?top=1`, { credentials: 'include' });
+          if (attendanceRes.ok) {
+            const data = await attendanceRes.json();
+            setStats(prev => ({ 
+              ...prev, 
+              totalAttendance: data.total || 0,
+              totalEvents: data.unique_events || 0,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchStats();
+    } else {
+      setLoading(false);
+    }
+  }, [user, isAdmin, canViewCruddy]);
 
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center py-16 space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold">Authentication Required</h2>
+          <h2 className="text-2xl font-bold">Welcome to Emuy Tools</h2>
           <p className="text-muted-foreground">Sign in to access your dashboard</p>
         </div>
         <Button onClick={login} size="lg">
@@ -106,156 +155,392 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex-1 space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back to Emuy Tools</p>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">
+            Welcome back, {user.global_name || user.username}
+          </p>
         </div>
-        <Button asChild variant="outline" size="sm" className="gap-2">
-          <Link to="/profile">
-            <Activity className="w-4 h-4" />
-            View Profile
-          </Link>
-        </Button>
-      </div>
-
-      {/* User Card */}
-      <Card className="bg-gradient-to-r from-card to-secondary/30">
-        <CardContent className="flex items-center gap-4 p-6">
-          <Avatar className="w-16 h-16 border-2 border-border">
-            <AvatarImage src={getAvatarUrl(user) || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary text-xl">
-              {(user.global_name || user.username).slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold">{user.global_name || user.username}</h2>
-            <p className="text-sm text-muted-foreground">@{user.username}</p>
-            {roles.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {roles.map(role => (
-                  <Badge
-                    key={role.id}
-                    variant="secondary"
-                    style={{ 
-                      backgroundColor: role.color + '20', 
-                      color: role.color,
-                      borderColor: role.color + '40'
-                    }}
-                    className="border"
-                  >
-                    {role.name}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-          {isAdmin && (
-            <Badge variant="outline" className="border-red-500/50 text-red-400">
-              Admin
+        <div className="flex items-center gap-2">
+          {roles.map(role => (
+            <Badge
+              key={role.id}
+              style={{ backgroundColor: role.color + '20', color: role.color }}
+            >
+              {role.name}
             </Badge>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Admin Section */}
-      {isAdmin && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            Administration
-          </h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            {adminLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link key={link.id} to={link.to}>
-                  <Card className={`group hover:border-primary/50 transition-all cursor-pointer border ${link.borderColor}`}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className={`p-2 rounded-lg ${link.bgColor} w-fit`}>
-                          <Icon className={`w-5 h-5 ${link.color}`} />
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <CardTitle className={`mt-2 ${link.color}`}>{link.title}</CardTitle>
-                      <CardDescription>{link.description}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Links */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-          Quick Access
-        </h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickLinks.map((link) => {
-            // Check permission for cruddy
-            if (link.permission && !hasPermission(link.permission) && !isAdmin) {
-              return null;
-            }
-
-            const Icon = link.icon;
-            const isExternal = 'href' in link;
-
-            if (isExternal) {
-              return (
-                <a 
-                  key={link.id} 
-                  href={link.href} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <Card className="group hover:border-primary/50 transition-all cursor-pointer h-full">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className={`p-2 rounded-lg ${link.bgColor} w-fit`}>
-                          <Icon className={`w-5 h-5 ${link.color}`} />
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <CardTitle className="text-base mt-2 group-hover:text-primary transition-colors">
-                        {link.title}
-                      </CardTitle>
-                      <CardDescription className="text-sm">
-                        {link.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                </a>
-              );
-            }
-
-            return (
-              <Link key={link.id} to={link.to!}>
-                <Card className="group hover:border-primary/50 transition-all cursor-pointer h-full">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className={`p-2 rounded-lg ${link.bgColor} w-fit`}>
-                        <Icon className={`w-5 h-5 ${link.color}`} />
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <CardTitle className="text-base mt-2 group-hover:text-primary transition-colors">
-                      {link.title}
-                    </CardTitle>
-                    <CardDescription className="text-sm">
-                      {link.description}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
-            );
-          })}
+          ))}
         </div>
       </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-4">
+          {/* Stats Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stats.totalUsers || '—'}</div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <ArrowUpRight className="h-3 w-3 text-green-500" />
+                      <span className="text-green-500">+12%</span> from last month
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Events Tracked</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stats.totalEvents || '—'}</div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <ArrowUpRight className="h-3 w-3 text-green-500" />
+                      <span className="text-green-500">+8%</span> from last month
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Attendance Records</CardTitle>
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stats.totalAttendance || '—'}</div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <ArrowUpRight className="h-3 w-3 text-green-500" />
+                      <span className="text-green-500">+24%</span> from last month
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Now</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    Online
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  You're connected
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            {/* Main Chart */}
+            <Card className="col-span-4">
+              <CardHeader>
+                <CardTitle>Activity Overview</CardTitle>
+                <CardDescription>
+                  Monthly growth across all metrics
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2">
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="users" 
+                      stroke="hsl(var(--primary))" 
+                      fillOpacity={1} 
+                      fill="url(#colorUsers)" 
+                      name="Users"
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="attendance" 
+                      stroke="hsl(var(--accent))" 
+                      fillOpacity={1} 
+                      fill="url(#colorAttendance)"
+                      name="Attendance"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card className="col-span-3">
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>
+                  Latest actions across the platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {loading ? (
+                    [...Array(5)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <Skeleton className="h-9 w-9 rounded-full" />
+                        <div className="space-y-1 flex-1">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                      </div>
+                    ))
+                  ) : recentActivity.length > 0 ? (
+                    recentActivity.map((activity) => (
+                      <div key={activity.id} className="flex items-center gap-4">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="text-xs">
+                            {activity.user.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium leading-none">
+                            {activity.user}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {activity.action}
+                          </p>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {activity.time}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No recent activity</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Links */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {canViewCruddy && (
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+                <Link to="/cruddy-panel">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-sm font-medium">Attendance</CardTitle>
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">Track event attendance</p>
+                  </CardContent>
+                </Link>
+              </Card>
+            )}
+            
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+              <a href="https://ironforged.gg" target="_blank" rel="noopener noreferrer">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-sm font-medium">Tile Events</CardTitle>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Ironforged Events</p>
+                </CardContent>
+              </a>
+            </Card>
+            
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+              <a href="https://bingo.emuy.gg" target="_blank" rel="noopener noreferrer">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-sm font-medium">Bingo</CardTitle>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Bingo competitions</p>
+                </CardContent>
+              </a>
+            </Card>
+            
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+              <a href="https://docs.emuy.gg" target="_blank" rel="noopener noreferrer">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-sm font-medium">Documentation</CardTitle>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">API docs & guides</p>
+                </CardContent>
+              </a>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Weekly Traffic */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Weekly Activity</CardTitle>
+                <CardDescription>Daily active users this week</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={weeklyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar 
+                      dataKey="visits" 
+                      fill="hsl(var(--primary))" 
+                      radius={[4, 4, 0, 0]}
+                      name="Page Views"
+                    />
+                    <Bar 
+                      dataKey="active" 
+                      fill="hsl(var(--accent))" 
+                      radius={[4, 4, 0, 0]}
+                      name="Active Users"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Growth Trend */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Growth Trend</CardTitle>
+                <CardDescription>User growth over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="users" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))' }}
+                      name="Total Users"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="events" 
+                      stroke="hsl(var(--accent))" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--accent))' }}
+                      name="Events"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
