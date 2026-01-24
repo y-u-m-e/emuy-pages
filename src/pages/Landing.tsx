@@ -75,7 +75,7 @@ export default function Landing() {
             <img
               src="/images/anime_pfp_landing.gif"
               alt="anime-pfp-landing"
-              className="max-h-350px object-cover rounded-2xl"
+              className="max-h-600px object-cover rounded-2xl"
             />
           </div>
         </div>
