@@ -77,6 +77,7 @@ export default function CruddyPanel() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [events, setEvents] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({ total: 0, uniqueNames: 0, uniqueEvents: 0 });
 
   // Dialog state
@@ -98,9 +99,20 @@ export default function CruddyPanel() {
 
   // Fetch data
   const fetchRecords = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch(`${API_BASE}/attendance/records?limit=1000`, { credentials: 'include' });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
+        console.error('API Error:', res.status, errorData);
+        return;
+      }
+      
       const data = await res.json();
+      console.log('Attendance data:', data); // Debug log
+      
       if (data.results) {
         setRecords(data.results);
         
@@ -115,9 +127,13 @@ export default function CruddyPanel() {
         
         // Get unique events for dropdown
         setEvents(Array.from(uniqueEvents) as string[]);
+      } else {
+        setError('No data returned from API');
+        console.error('Unexpected API response:', data);
       }
     } catch (err) {
       console.error('Failed to fetch records:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch records');
     } finally {
       setLoading(false);
     }
@@ -371,6 +387,14 @@ export default function CruddyPanel() {
           Add Record
         </Button>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
