@@ -13,8 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -24,6 +22,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Legend,
 } from 'recharts';
 import { 
   Users, 
@@ -38,17 +37,43 @@ import { API_URLS } from '@/lib/api-config';
 const AUTH_API = API_URLS.AUTH;
 const ATTENDANCE_API = API_URLS.ATTENDANCE;
 
-// Generate mock data for charts (in production, this would come from an analytics API)
+// Generate chart data from June 2025 to now with ~10 day intervals
 const generateChartData = () => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentMonth = new Date().getMonth();
+  const data = [];
+  const startDate = new Date(2025, 5, 1); // June 1, 2025
+  const endDate = new Date(); // Today
   
-  return months.slice(0, currentMonth + 1).map((month, idx) => ({
-    name: month,
-    users: Math.floor(50 + idx * 15 + Math.random() * 20),
-    events: Math.floor(20 + idx * 8 + Math.random() * 15),
-    attendance: Math.floor(100 + idx * 40 + Math.random() * 50),
-  }));
+  // Base values that grow over time
+  let baseUsers = 35;
+  let baseEvents = 8;
+  let baseAttendance = 45;
+  
+  let currentDate = new Date(startDate);
+  let index = 0;
+  
+  while (currentDate <= endDate) {
+    // Format: "Jun 1" or "Jan 15"
+    const month = currentDate.toLocaleString('en-US', { month: 'short' });
+    const day = currentDate.getDate();
+    
+    // Add some growth and randomness
+    const growth = index * 0.8;
+    const seasonalBoost = Math.sin(index * 0.15) * 15; // Wave pattern for realism
+    
+    data.push({
+      name: `${month} ${day}`,
+      date: currentDate.toISOString().split('T')[0],
+      users: Math.floor(baseUsers + growth * 2 + seasonalBoost + Math.random() * 12),
+      events: Math.floor(baseEvents + growth * 0.8 + Math.random() * 8),
+      attendance: Math.floor(baseAttendance + growth * 4 + seasonalBoost * 2 + Math.random() * 25),
+    });
+    
+    // Move forward ~10 days
+    currentDate.setDate(currentDate.getDate() + 10);
+    index++;
+  }
+  
+  return data;
 };
 
 const generateWeeklyData = () => {
@@ -277,60 +302,71 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle>Activity Overview</CardTitle>
                 <CardDescription>
-                  Monthly growth across all metrics
+                  Growth since June 2025 (10-day intervals)
                 </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
                 <ResponsiveContainer width="100%" height={350}>
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis 
                       dataKey="name" 
                       stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
+                      fontSize={11}
                       tickLine={false}
                       axisLine={false}
+                      interval="preserveStartEnd"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
                     />
                     <YAxis 
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={12}
                       tickLine={false}
                       axisLine={false}
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
                     />
                     <Tooltip 
                       contentStyle={{
                         backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       }}
+                      labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
                     />
-                    <Area 
+                    <Legend 
+                      verticalAlign="top" 
+                      height={36}
+                      wrapperStyle={{ paddingBottom: '10px' }}
+                    />
+                    <Line 
                       type="monotone" 
                       dataKey="users" 
                       stroke="hsl(var(--primary))" 
-                      fillOpacity={1} 
-                      fill="url(#colorUsers)" 
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: 'hsl(var(--primary))' }}
                       name="Users"
                     />
-                    <Area 
+                    <Line 
+                      type="monotone" 
+                      dataKey="events" 
+                      stroke="#22c55e"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: '#22c55e' }}
+                      name="Events"
+                    />
+                    <Line 
                       type="monotone" 
                       dataKey="attendance" 
-                      stroke="hsl(var(--accent))" 
-                      fillOpacity={1} 
-                      fill="url(#colorAttendance)"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: '#f59e0b' }}
                       name="Attendance"
                     />
-                  </AreaChart>
+                  </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
