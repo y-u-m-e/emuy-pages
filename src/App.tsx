@@ -21,6 +21,7 @@ import CruddyPanel from '@/pages/CruddyPanel'
 import Admin from '@/pages/Admin'
 import DevOps from '@/pages/DevOps'
 import Profile from '@/pages/Profile'
+import Architecture from '@/pages/Architecture'
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="admin" element={<Admin />} />
             <Route path="devops" element={<DevOps />} />
+            <Route path="architecture" element={<Architecture />} />
           </Route>
         </Routes>
       </StagingGate>

@@ -34,7 +34,8 @@ import {
   Search,
   Bell,
   Code2,
-  ExternalLink
+  ExternalLink,
+  Network
 } from 'lucide-react';
 
 interface NavItem {
@@ -63,6 +64,7 @@ const externalNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { path: '/admin', label: 'Admin Panel', icon: Shield },
   { path: '/devops', label: 'DevOps', icon: Settings },
+  { path: '/architecture', label: 'Architecture', icon: Network },
 ];
 
 const stagingNavItems: NavItem[] = [
