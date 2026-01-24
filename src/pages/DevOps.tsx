@@ -24,12 +24,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Separator } from '@/components/ui/separator';
 import { 
   GitBranch, 
   RefreshCw, 
@@ -54,8 +50,7 @@ import {
   Gamepad2,
   FileText,
   Rocket,
-  Settings,
-  Trash2
+  Settings
 } from 'lucide-react';
 
 // =============================================================================
@@ -103,49 +98,8 @@ interface ServiceHealth {
   lastChecked?: string;
 }
 
-interface SeshWorkerStatus {
-  configured: boolean;
-  worker?: string;
-  status?: string;
-  timestamp?: string;
-  error?: string;
-}
-
-interface SeshWorkerConfig {
-  guildId?: string;
-  spreadsheetId?: string;
-  sheetName?: string;
-  serviceAccountConfigured?: boolean;
-  privateKeyConfigured?: boolean;
-}
-
-interface SeshSyncResult {
-  success: boolean;
-  eventsCount?: number;
-  duration?: number;
-  timestamp?: string;
-  error?: string;
-}
-
-interface ErrorLog {
-  id: number;
-  timestamp: string;
-  endpoint: string;
-  method: string;
-  error_type: string;
-  error_message: string;
-  stack_trace?: string;
-  user_id?: string;
-  ip_address?: string;
-  resolved: number;
-  notes?: string;
-}
-
-interface ErrorLogSummary {
-  error_type: string;
-  count: number;
-  unresolved: number;
-}
+// Note: SeshWorkerStatus, SeshWorkerConfig, SeshSyncResult, ErrorLog, and ErrorLogSummary
+// types removed - will be re-added when endpoints are implemented
 
 // =============================================================================
 // CONSTANTS
@@ -231,15 +185,6 @@ const REPOS: Omit<RepoStatus, 'loading' | 'lastCommit' | 'workflows' | 'error'>[
   },
 ];
 
-const CRON_SCHEDULES = [
-  { value: '0 * * * *', label: 'Every hour', description: 'Runs at the top of every hour' },
-  { value: '0 */2 * * *', label: 'Every 2 hours', description: 'Runs every 2 hours' },
-  { value: '0 */4 * * *', label: 'Every 4 hours', description: 'Runs 6 times a day' },
-  { value: '0 */6 * * *', label: 'Every 6 hours', description: 'Runs 4 times a day (default)' },
-  { value: '0 */12 * * *', label: 'Every 12 hours', description: 'Runs twice a day' },
-  { value: '0 0 * * *', label: 'Daily (midnight)', description: 'Runs once at midnight UTC' },
-];
-
 const SERVICES: Omit<ServiceHealth, 'status' | 'latency' | 'lastChecked'>[] = [
   { name: 'Auth API', url: API_URLS.AUTH },
   { name: 'Attendance API', url: API_URLS.ATTENDANCE },
@@ -275,53 +220,17 @@ export default function DevOps() {
   );
   const [checkingHealth, setCheckingHealth] = useState(false);
 
-  // Sesh Calendar Worker
-  const [seshWorkerStatus, setSeshWorkerStatus] = useState<SeshWorkerStatus | null>(null);
-  const [seshWorkerConfig, setSeshWorkerConfig] = useState<SeshWorkerConfig | null>(null);
-  const [seshSyncing, setSeshSyncing] = useState(false);
-  const [seshLastSync, setSeshLastSync] = useState<SeshSyncResult | null>(null);
-  const [selectedSchedule, setSelectedSchedule] = useState('0 */6 * * *');
-
-  // Widget heartbeats
-  const [heartbeatStatus, setHeartbeatStatus] = useState<Record<string, { status: string; lastPing: string; source: string }>>({});
-  const [pingingCarrd, setPingingCarrd] = useState(false);
-
-  // Error logs
-  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
-  const [errorSummary, setErrorSummary] = useState<ErrorLogSummary[]>([]);
-  const [errorLogsTotal, setErrorLogsTotal] = useState(0);
-  const [errorLogsPage, setErrorLogsPage] = useState(1);
-  const [loadingErrorLogs, setLoadingErrorLogs] = useState(false);
-  const [errorTypeFilter, setErrorTypeFilter] = useState<string>('');
-  const [showResolvedLogs, setShowResolvedLogs] = useState(false);
-  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
+  // Note: Sesh Calendar, Widget Heartbeats, and Error Logs features
+  // are shown as "Coming Soon" since endpoints aren't migrated yet
 
   // ==========================================================================
   // DATA FETCHING
   // ==========================================================================
 
-  // Load GitHub token
+  // Load GitHub token from localStorage only (server endpoint not available yet)
   useEffect(() => {
-    const loadToken = async () => {
+    const loadToken = () => {
       setLoadingSecrets(true);
-      try {
-        const res = await fetch(`${API_URLS.AUTH}/admin/secrets`, {
-          credentials: 'include'
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.github_pat) {
-            setGithubToken(data.github_pat);
-            setTokenSaved(true);
-            setTokenSource('server');
-            setLoadingSecrets(false);
-            return;
-          }
-        }
-      } catch {
-        // Server token not available
-      }
-      
       const saved = localStorage.getItem('github_pat');
       if (saved) {
         setGithubToken(saved);
@@ -343,28 +252,14 @@ export default function DevOps() {
     }
   }, [tokenSaved, githubToken]);
 
-  // Fetch other data on mount
+  // Check service health on mount
   useEffect(() => {
-    if (user) {
-      fetchSeshWorkerStatus();
-      fetchErrorLogs(1);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchHeartbeatStatus();
     checkAllServicesHealth();
     const interval = setInterval(() => {
-      fetchHeartbeatStatus();
       checkAllServicesHealth();
     }, 60000); // Every minute
     return () => clearInterval(interval);
   }, []);
-
-  // Re-fetch error logs when filters change
-  useEffect(() => {
-    if (user) fetchErrorLogs(1);
-  }, [showResolvedLogs, errorTypeFilter]);
 
   // Redirect if not authorized
   useEffect(() => {
@@ -474,59 +369,6 @@ export default function DevOps() {
     setCheckingHealth(false);
   }, []);
 
-  const fetchHeartbeatStatus = async () => {
-    try {
-      const res = await fetch(`${API_URLS.AUTH}/widget/status`);
-      if (res.ok) {
-        const data = await res.json();
-        setHeartbeatStatus(data.widgets || {});
-      }
-    } catch {
-      // Ignore
-    }
-  };
-
-  const fetchSeshWorkerStatus = async () => {
-    try {
-      const [statusRes, configRes] = await Promise.all([
-        fetch(`${API_URLS.AUTH}/admin/sesh-worker/status`, { credentials: 'include' }),
-        fetch(`${API_URLS.AUTH}/admin/sesh-worker/config`, { credentials: 'include' })
-      ]);
-      
-      if (statusRes.ok) setSeshWorkerStatus(await statusRes.json());
-      if (configRes.ok) setSeshWorkerConfig(await configRes.json());
-    } catch {
-      setSeshWorkerStatus({ configured: false, error: 'Failed to fetch status' });
-    }
-  };
-
-  const fetchErrorLogs = async (page = 1) => {
-    setLoadingErrorLogs(true);
-    try {
-      const params = new URLSearchParams({
-        limit: '20',
-        offset: String((page - 1) * 20),
-        resolved: showResolvedLogs ? '' : 'false'
-      });
-      if (errorTypeFilter) params.set('type', errorTypeFilter);
-      
-      const res = await fetch(`${API_URLS.AUTH}/admin/error-logs?${params}`, {
-        credentials: 'include'
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setErrorLogs(data.logs || []);
-        setErrorLogsTotal(data.total || 0);
-        setErrorSummary(data.summary || []);
-        setErrorLogsPage(page);
-      }
-    } catch (err) {
-      console.error("Failed to fetch error logs:", err);
-    } finally {
-      setLoadingErrorLogs(false);
-    }
-  };
 
   // ==========================================================================
   // ACTIONS
@@ -578,80 +420,6 @@ export default function DevOps() {
     }
   };
 
-  const triggerSeshSync = async () => {
-    setSeshSyncing(true);
-    setSeshLastSync(null);
-    
-    try {
-      const res = await fetch(`${API_URLS.AUTH}/admin/sesh-worker/sync`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      
-      const data = await res.json();
-      setSeshLastSync(data);
-      await fetchSeshWorkerStatus();
-    } catch {
-      setSeshLastSync({ success: false, error: 'Failed to trigger sync' });
-    } finally {
-      setSeshSyncing(false);
-    }
-  };
-
-  const pingCarrdWidgets = async () => {
-    setPingingCarrd(true);
-    try {
-      const res = await fetch(`${API_URLS.AUTH}/admin/widget/ping`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (res.ok) await fetchHeartbeatStatus();
-    } catch (err) {
-      console.error('Ping failed:', err);
-    } finally {
-      setPingingCarrd(false);
-    }
-  };
-
-  const markLogResolved = async (logId: number, resolved: boolean) => {
-    try {
-      const res = await fetch(`${API_URLS.AUTH}/admin/error-logs/${logId}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resolved })
-      });
-      if (res.ok) fetchErrorLogs(errorLogsPage);
-    } catch (err) {
-      console.error("Failed to update error log:", err);
-    }
-  };
-
-  const deleteLog = async (logId: number) => {
-    if (!confirm('Delete this error log?')) return;
-    try {
-      const res = await fetch(`${API_URLS.AUTH}/admin/error-logs/${logId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      if (res.ok) fetchErrorLogs(errorLogsPage);
-    } catch (err) {
-      console.error("Failed to delete error log:", err);
-    }
-  };
-
-  const clearResolvedLogs = async () => {
-    if (!confirm('Clear all resolved error logs?')) return;
-    try {
-      await fetch(`${API_URLS.AUTH}/admin/error-logs`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      fetchErrorLogs(1);
-    } catch (err) {
-      console.error("Failed to clear logs:", err);
-    }
-  };
 
   const toggleRepoExpanded = (repoName: string) => {
     setExpandedRepos(prev => {
@@ -674,12 +442,6 @@ export default function DevOps() {
     return <Clock className="h-3 w-3 text-muted-foreground" />;
   };
 
-  const getHeartbeatColor = (status?: string) => {
-    if (status === 'online') return 'bg-green-500';
-    if (status === 'recent') return 'bg-green-400';
-    if (status === 'stale') return 'bg-yellow-400';
-    return 'bg-red-400';
-  };
 
   // ==========================================================================
   // LOADING/AUTH STATES
@@ -728,7 +490,7 @@ export default function DevOps() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => { fetchAllRepoData(); checkAllServicesHealth(); fetchSeshWorkerStatus(); }}
+                  onClick={() => { fetchAllRepoData(); checkAllServicesHealth(); }}
                   disabled={!tokenSaved}
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -835,11 +597,6 @@ export default function DevOps() {
             <TabsTrigger value="errors" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
               Errors
-              {errorSummary.reduce((acc, s) => acc + s.unresolved, 0) > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 px-1.5">
-                  {errorSummary.reduce((acc, s) => acc + s.unresolved, 0)}
-                </Badge>
-              )}
             </TabsTrigger>
           </TabsList>
 
@@ -913,77 +670,29 @@ export default function DevOps() {
           {/* Tools Tab */}
           <TabsContent value="tools" className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              {/* Sesh Calendar Worker */}
-              <Card>
+              {/* Sesh Calendar Worker - Coming Soon */}
+              <Card className="border-dashed">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-purple-400" />
                       Sesh Calendar
                     </CardTitle>
-                    {seshWorkerStatus?.configured ? (
-                      <Badge variant="outline" className="text-green-400 border-green-400/30">
-                        Online
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-yellow-400 border-yellow-400/30">
-                        Not configured
-                      </Badge>
-                    )}
+                    <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                      Coming Soon
+                    </Badge>
                   </div>
                   <CardDescription>Auto-sync events to Google Sheets</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Schedule */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">Schedule</label>
-                    <Select value={selectedSchedule} onValueChange={setSelectedSchedule}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CRON_SCHEDULES.map(s => (
-                          <SelectItem key={s.value} value={s.value}>
-                            {s.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {CRON_SCHEDULES.find(s => s.value === selectedSchedule)?.description}
-                    </p>
+                <CardContent>
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Backend endpoints not yet migrated</p>
+                    <p className="text-xs mt-1">Check back after the sesh-calendar-worker is connected</p>
                   </div>
-
-                  {/* Config Status */}
-                  {seshWorkerConfig && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2 rounded bg-secondary/50 text-xs">
-                        <span className="text-muted-foreground block">Service Account</span>
-                        <span className={seshWorkerConfig.serviceAccountConfigured ? 'text-green-400' : 'text-red-400'}>
-                          {seshWorkerConfig.serviceAccountConfigured ? '✓ Set' : '✗ Missing'}
-                        </span>
-                      </div>
-                      <div className="p-2 rounded bg-secondary/50 text-xs">
-                        <span className="text-muted-foreground block">Private Key</span>
-                        <span className={seshWorkerConfig.privateKeyConfigured ? 'text-green-400' : 'text-red-400'}>
-                          {seshWorkerConfig.privateKeyConfigured ? '✓ Set' : '✗ Missing'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={triggerSeshSync}
-                      disabled={seshSyncing || !seshWorkerStatus?.configured}
-                      className="flex-1"
-                    >
-                      {seshSyncing ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Syncing...</>
-                      ) : (
-                        <><RefreshCw className="h-4 w-4 mr-2" /> Sync Now</>
-                      )}
+                  <div className="flex gap-2 mt-4">
+                    <Button variant="outline" className="flex-1" disabled>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Sync Now
                     </Button>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1000,66 +709,29 @@ export default function DevOps() {
                       <TooltipContent>Open Google Sheet</TooltipContent>
                     </Tooltip>
                   </div>
-
-                  {/* Last Sync Result */}
-                  {seshLastSync && (
-                    <div className={`p-2 rounded text-xs ${seshLastSync.success ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                      {seshLastSync.success 
-                        ? `✅ Synced ${seshLastSync.eventsCount} events (${seshLastSync.duration}ms)`
-                        : `❌ ${seshLastSync.error}`
-                      }
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
-              {/* Widget Heartbeats */}
-              <Card>
+              {/* Widget Heartbeats - Coming Soon */}
+              <Card className="border-dashed">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Heart className="h-4 w-4 text-red-400" />
                       Widget Heartbeats
                     </CardTitle>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={pingCarrdWidgets}
-                      disabled={pingingCarrd}
-                    >
-                      {pingingCarrd ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Activity className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                      Coming Soon
+                    </Badge>
                   </div>
                   <CardDescription>Carrd widget status</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  {[
-                    { key: 'mention-maker', name: 'Mention Maker', icon: '@' },
-                    { key: 'event-parser', name: 'Event Parser', icon: '📋' },
-                    { key: 'infographic-maker', name: 'Infographic', icon: '🖼️' },
-                  ].map(widget => {
-                    const hb = heartbeatStatus[widget.key];
-                    return (
-                      <div key={widget.key} className="flex items-center justify-between p-3 rounded bg-secondary/50">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{widget.icon}</span>
-                          <span className="text-sm font-medium">{widget.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {hb?.lastPing 
-                              ? new Date(hb.lastPing.replace(' ', 'T') + 'Z').toLocaleString()
-                              : 'No data'}
-                          </span>
-                          <div className={`w-2 h-2 rounded-full ${getHeartbeatColor(hb?.status)}`} />
-                        </div>
-                      </div>
-                    );
-                  })}
+                <CardContent>
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Heart className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Backend endpoints not yet migrated</p>
+                    <p className="text-xs mt-1">Widgets: Mention Maker, Event Parser, Infographic</p>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1100,162 +772,50 @@ export default function DevOps() {
 
           {/* Error Logs Tab */}
           <TabsContent value="errors" className="space-y-4">
-            <Card>
+            <Card className="border-dashed">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-red-400" />
                     Error Logs
-                    <Badge variant="outline" className="ml-2">
-                      {errorSummary.reduce((acc, s) => acc + s.unresolved, 0)} unresolved
-                    </Badge>
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => fetchErrorLogs(1)}>
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    {errorSummary.some(s => s.count > 0) && (
-                      <Button variant="ghost" size="sm" onClick={clearResolvedLogs} className="text-red-400">
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Clear Resolved
-                      </Button>
-                    )}
-                  </div>
+                  <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                    Coming Soon
+                  </Badge>
                 </div>
+                <CardDescription>Centralized error logging and monitoring</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Filters */}
-                <div className="flex flex-wrap gap-3 items-center">
-                  <Select value={errorTypeFilter} onValueChange={setErrorTypeFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
-                      {errorSummary.map(s => (
-                        <SelectItem key={s.error_type} value={s.error_type}>
-                          {s.error_type} ({s.count})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="showResolved"
-                      checked={showResolvedLogs}
-                      onCheckedChange={(checked) => setShowResolvedLogs(!!checked)}
-                    />
-                    <label htmlFor="showResolved" className="text-sm text-muted-foreground cursor-pointer">
-                      Show resolved
-                    </label>
+              <CardContent>
+                <div className="text-center py-12 text-muted-foreground">
+                  <AlertTriangle className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                  <h3 className="text-lg font-medium mb-2">Error Logging Not Yet Migrated</h3>
+                  <p className="text-sm max-w-md mx-auto">
+                    The error logging endpoints need to be added to the auth-api microservice. 
+                    In the meantime, check Cloudflare dashboard for worker logs.
+                  </p>
+                  <div className="flex justify-center gap-3 mt-6">
+                    <Button variant="outline" asChild>
+                      <a 
+                        href="https://dash.cloudflare.com/?to=/:account/workers/overview" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Cloudflare Workers
+                      </a>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <a 
+                        href="https://railway.app/dashboard" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Railway Logs
+                      </a>
+                    </Button>
                   </div>
                 </div>
-
-                {/* Error List */}
-                <ScrollArea className="h-[400px]">
-                  <div className="space-y-2 pr-4">
-                    {loadingErrorLogs ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : errorLogs.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-400" />
-                        <p>No errors logged 🎉</p>
-                      </div>
-                    ) : (
-                      errorLogs.map(log => (
-                        <div
-                          key={log.id}
-                          className={`rounded-lg border border-border/50 overflow-hidden ${log.resolved ? 'opacity-60' : ''}`}
-                        >
-                          <div 
-                            className="p-3 bg-secondary/30 cursor-pointer hover:bg-secondary/50 transition-colors"
-                            onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <ChevronRight className={`h-4 w-4 transition-transform ${expandedLogId === log.id ? 'rotate-90' : ''}`} />
-                                <Badge variant={
-                                  log.error_type === 'db' ? 'destructive' :
-                                  log.error_type === 'auth' ? 'default' :
-                                  'secondary'
-                                }>
-                                  {log.error_type}
-                                </Badge>
-                                <span className="text-sm font-mono truncate max-w-[200px]">{log.endpoint}</span>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(log.timestamp + 'Z').toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {expandedLogId === log.id && (
-                            <div className="p-3 border-t border-border/50 space-y-3 bg-background/50">
-                              <div className="text-red-400 text-sm font-mono break-all">
-                                {log.error_message}
-                              </div>
-                              {log.stack_trace && (
-                                <pre className="text-xs text-muted-foreground overflow-x-auto max-h-32 bg-secondary p-2 rounded">
-                                  {log.stack_trace}
-                                </pre>
-                              )}
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <span>IP: {log.ip_address || 'N/A'}</span>
-                                {log.user_id && <span>User: {log.user_id}</span>}
-                              </div>
-                              <Separator />
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant={log.resolved ? 'outline' : 'default'}
-                                  onClick={(e) => { e.stopPropagation(); markLogResolved(log.id, !log.resolved); }}
-                                >
-                                  {log.resolved ? 'Mark Unresolved' : 'Mark Resolved'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={(e) => { e.stopPropagation(); deleteLog(log.id); }}
-                                >
-                                  Delete
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-
-                {/* Pagination */}
-                {errorLogsTotal > 20 && (
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className="text-sm text-muted-foreground">
-                      Page {errorLogsPage} of {Math.ceil(errorLogsTotal / 20)}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => fetchErrorLogs(errorLogsPage - 1)}
-                        disabled={errorLogsPage <= 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => fetchErrorLogs(errorLogsPage + 1)}
-                        disabled={errorLogsPage >= Math.ceil(errorLogsTotal / 20)}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
