@@ -34,6 +34,9 @@ export const API_URLS = {
   BINGO: isDev 
     ? 'http://localhost:8791' 
     : 'https://bingo.api.emuy.gg',
+  
+  // Sesh Calendar Worker - syncs Discord events to Google Sheets
+  SESH: 'https://sesh-calendar-worker.karlstraub7.workers.dev',
 };
 
 // Legacy API_BASE for backwards compatibility

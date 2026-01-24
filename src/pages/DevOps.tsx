@@ -98,8 +98,29 @@ interface ServiceHealth {
   lastChecked?: string;
 }
 
-// Note: SeshWorkerStatus, SeshWorkerConfig, SeshSyncResult, ErrorLog, and ErrorLogSummary
-// types removed - will be re-added when endpoints are implemented
+interface SeshWorkerStatus {
+  worker: string;
+  status: string;
+  endpoints?: Record<string, string>;
+  timestamp: string;
+}
+
+interface SeshWorkerConfig {
+  guildId?: string;
+  spreadsheetId?: string;
+  sheetName?: string;
+  serviceAccountConfigured?: boolean;
+  privateKeyConfigured?: boolean;
+}
+
+interface SeshSyncResult {
+  success: boolean;
+  eventsCount?: number;
+  authorCount?: number;
+  duration?: number;
+  timestamp?: string;
+  error?: string;
+}
 
 // =============================================================================
 // CONSTANTS
@@ -220,8 +241,12 @@ export default function DevOps() {
   );
   const [checkingHealth, setCheckingHealth] = useState(false);
 
-  // Note: Sesh Calendar, Widget Heartbeats, and Error Logs features
-  // are shown as "Coming Soon" since endpoints aren't migrated yet
+  // Sesh Calendar Worker state
+  const [seshWorkerStatus, setSeshWorkerStatus] = useState<SeshWorkerStatus | null>(null);
+  const [seshWorkerConfig, setSeshWorkerConfig] = useState<SeshWorkerConfig | null>(null);
+  const [seshSyncing, setSeshSyncing] = useState(false);
+  const [seshLastSync, setSeshLastSync] = useState<SeshSyncResult | null>(null);
+  const [loadingSeshStatus, setLoadingSeshStatus] = useState(true);
 
   // ==========================================================================
   // DATA FETCHING
@@ -252,9 +277,10 @@ export default function DevOps() {
     }
   }, [tokenSaved, githubToken]);
 
-  // Check service health on mount
+  // Check service health and Sesh worker on mount
   useEffect(() => {
     checkAllServicesHealth();
+    fetchSeshWorkerStatus();
     const interval = setInterval(() => {
       checkAllServicesHealth();
     }, 60000); // Every minute
@@ -369,6 +395,53 @@ export default function DevOps() {
     setCheckingHealth(false);
   }, []);
 
+  // Fetch Sesh Calendar Worker status and config
+  const fetchSeshWorkerStatus = async () => {
+    setLoadingSeshStatus(true);
+    try {
+      const [statusRes, configRes] = await Promise.all([
+        fetch(`${API_URLS.SESH}/status`),
+        fetch(`${API_URLS.SESH}/config`)
+      ]);
+      
+      if (statusRes.ok) {
+        setSeshWorkerStatus(await statusRes.json());
+      }
+      if (configRes.ok) {
+        setSeshWorkerConfig(await configRes.json());
+      }
+    } catch (err) {
+      console.error('Failed to fetch Sesh worker status:', err);
+    } finally {
+      setLoadingSeshStatus(false);
+    }
+  };
+
+  // Trigger Sesh Calendar sync
+  const triggerSeshSync = async () => {
+    setSeshSyncing(true);
+    setSeshLastSync(null);
+    
+    try {
+      const res = await fetch(`${API_URLS.SESH}/sync`, {
+        method: 'POST'
+      });
+      
+      const data = await res.json();
+      setSeshLastSync(data);
+      
+      // Refresh status after sync
+      await fetchSeshWorkerStatus();
+    } catch (err) {
+      setSeshLastSync({ 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Failed to trigger sync',
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setSeshSyncing(false);
+    }
+  };
 
   // ==========================================================================
   // ACTIONS
@@ -670,35 +743,83 @@ export default function DevOps() {
           {/* Tools Tab */}
           <TabsContent value="tools" className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              {/* Sesh Calendar Worker - Coming Soon */}
-              <Card className="border-dashed">
+              {/* Sesh Calendar Worker */}
+              <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-purple-400" />
                       Sesh Calendar
                     </CardTitle>
-                    <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-                      Coming Soon
-                    </Badge>
+                    {loadingSeshStatus ? (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Loading
+                      </Badge>
+                    ) : seshWorkerStatus?.status === 'online' ? (
+                      <Badge variant="outline" className="text-green-400 border-green-400/30">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Online
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-red-400 border-red-400/30">
+                        <XCircle className="h-3 w-3 mr-1" /> Offline
+                      </Badge>
+                    )}
                   </div>
-                  <CardDescription>Auto-sync events to Google Sheets</CardDescription>
+                  <CardDescription>Auto-sync Discord events to Google Sheets</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">Backend endpoints not yet migrated</p>
-                    <p className="text-xs mt-1">Check back after the sesh-calendar-worker is connected</p>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button variant="outline" className="flex-1" disabled>
-                      <RefreshCw className="h-4 w-4 mr-2" /> Sync Now
+                <CardContent className="space-y-4">
+                  {/* Config Status */}
+                  {seshWorkerConfig && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded bg-secondary/50 text-xs">
+                        <span className="text-muted-foreground block">Guild ID</span>
+                        <span className="font-mono text-xs">{seshWorkerConfig.guildId?.slice(0, 8)}...</span>
+                      </div>
+                      <div className="p-2 rounded bg-secondary/50 text-xs">
+                        <span className="text-muted-foreground block">Sheet</span>
+                        <span>{seshWorkerConfig.sheetName}</span>
+                      </div>
+                      <div className="p-2 rounded bg-secondary/50 text-xs">
+                        <span className="text-muted-foreground block">Service Account</span>
+                        <span className={seshWorkerConfig.serviceAccountConfigured ? 'text-green-400' : 'text-red-400'}>
+                          {seshWorkerConfig.serviceAccountConfigured ? '✓ Set' : '✗ Missing'}
+                        </span>
+                      </div>
+                      <div className="p-2 rounded bg-secondary/50 text-xs">
+                        <span className="text-muted-foreground block">Private Key</span>
+                        <span className={seshWorkerConfig.privateKeyConfigured ? 'text-green-400' : 'text-red-400'}>
+                          {seshWorkerConfig.privateKeyConfigured ? '✓ Set' : '✗ Missing'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={triggerSeshSync}
+                      disabled={seshSyncing}
+                      className="flex-1"
+                    >
+                      {seshSyncing ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Syncing...</>
+                      ) : (
+                        <><RefreshCw className="h-4 w-4 mr-2" /> Sync Now</>
+                      )}
                     </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={fetchSeshWorkerStatus}>
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Refresh status</TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="outline" size="icon" asChild>
                           <a 
-                            href="https://docs.google.com/spreadsheets/d/1ME5MvznNQy_F9RYIl8tqFTzw-6dSDyv7EX-Ln_Sq7HI"
+                            href={`https://docs.google.com/spreadsheets/d/${seshWorkerConfig?.spreadsheetId || '1ME5MvznNQy_F9RYIl8tqFTzw-6dSDyv7EX-Ln_Sq7HI'}`}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
@@ -708,6 +829,34 @@ export default function DevOps() {
                       </TooltipTrigger>
                       <TooltipContent>Open Google Sheet</TooltipContent>
                     </Tooltip>
+                  </div>
+
+                  {/* Last Sync Result */}
+                  {seshLastSync && (
+                    <div className={`p-3 rounded text-sm ${seshLastSync.success ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                      {seshLastSync.success ? (
+                        <div className="text-green-400">
+                          <CheckCircle2 className="h-4 w-4 inline mr-2" />
+                          Synced {seshLastSync.eventsCount} events ({seshLastSync.duration}ms)
+                        </div>
+                      ) : (
+                        <div className="text-red-400">
+                          <XCircle className="h-4 w-4 inline mr-2" />
+                          {seshLastSync.error}
+                        </div>
+                      )}
+                      {seshLastSync.timestamp && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {new Date(seshLastSync.timestamp).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Cron Info */}
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Auto-syncs every 2 hours via cron trigger
                   </div>
                 </CardContent>
               </Card>
