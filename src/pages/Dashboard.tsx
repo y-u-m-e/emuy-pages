@@ -31,6 +31,7 @@ import {
   ArrowUpRight,
   ExternalLink
 } from 'lucide-react';
+import MondayKanban from '@/components/MondayKanban';
 import { API_URLS } from '@/lib/api-config';
 
 const AUTH_API = API_URLS.AUTH;
@@ -113,6 +114,7 @@ export default function Dashboard() {
   const [weeklyData] = useState(generateWeeklyData());
 
   const canViewCruddy = isAdmin || hasPermission('view_cruddy');
+  const canViewDevOps = isAdmin || hasPermission('view_devops');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -498,6 +500,17 @@ export default function Dashboard() {
               </a>
             </Card>
           </div>
+
+          {/* Monday.com Kanban Board (DevOps users only) */}
+          {canViewDevOps && (
+            <MondayKanban
+              mode="link"
+              title="Project Kanban"
+              description="Track development tasks and progress"
+              boardUrl="https://monday.com"
+              className="mt-4"
+            />
+          )}
 
         </TabsContent>
 

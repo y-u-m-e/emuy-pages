@@ -31,7 +31,6 @@ import {
   BookOpen,
   Grid3X3,
   Home,
-  Search,
   Bell,
   Code2,
   ExternalLink,
@@ -277,19 +276,8 @@ export default function Layout() {
             </SheetContent>
           </Sheet>
           
-          {/* Search placeholder */}
-          <div className="w-full flex-1">
-            <form>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="search"
-                  placeholder="Search..."
-                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-input px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </div>
-            </form>
-          </div>
+          {/* Spacer */}
+          <div className="flex-1" />
           
           {/* Right side - notifications & user menu */}
           <div className="flex items-center gap-2">
