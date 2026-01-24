@@ -22,7 +22,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Legend,
 } from 'recharts';
 import { 
   Users, 
@@ -40,7 +39,7 @@ const ATTENDANCE_API = API_URLS.ATTENDANCE;
 // Generate chart data from June 2025 to now with ~10 day intervals
 const generateChartData = () => {
   const data = [];
-  const startDate = new Date(2025, 5, 1); // June 1, 2025
+  const startDate = new Date(2025, 8, 1); // September 1, 2025
   const endDate = new Date(); // Today
   
   // Base values that grow over time
@@ -143,13 +142,14 @@ export default function Dashboard() {
         
         // Fetch attendance stats if has permission
         if (canViewCruddy) {
-          const attendanceRes = await fetch(`${ATTENDANCE_API}/attendance?top=1`, { credentials: 'include' });
-          if (attendanceRes.ok) {
-            const data = await attendanceRes.json();
+          const statsRes = await fetch(`${ATTENDANCE_API}/attendance/stats`, { credentials: 'include' });
+          if (statsRes.ok) {
+            const data = await statsRes.json();
             setStats(prev => ({ 
               ...prev, 
-              totalAttendance: data.total || 0,
+              totalAttendance: data.total_records || 0,
               totalEvents: data.unique_events || 0,
+              activeUsers: data.unique_players || 0,
             }));
           }
         }
@@ -302,11 +302,11 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle>Activity Overview</CardTitle>
                 <CardDescription>
-                  Growth since June 2025 (10-day intervals)
+                  Growth since September 2025 (10-day intervals)
                 </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <ResponsiveContainer width="100%" height={350}>
+                <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis 
@@ -333,11 +333,6 @@ export default function Dashboard() {
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       }}
                       labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-                    />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={36}
-                      wrapperStyle={{ paddingBottom: '10px' }}
                     />
                     <Line 
                       type="monotone" 
@@ -368,6 +363,33 @@ export default function Dashboard() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                
+                {/* Legend Panel */}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))' }} />
+                      <div>
+                        <p className="font-medium">Users</p>
+                        <p className="text-xs text-muted-foreground">Total registered users who have logged in via Discord</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: '#22c55e' }} />
+                      <div>
+                        <p className="font-medium">Events</p>
+                        <p className="text-xs text-muted-foreground">Unique clan events tracked (PvM, skilling, social)</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: '#f59e0b' }} />
+                      <div>
+                        <p className="font-medium">Attendance</p>
+                        <p className="text-xs text-muted-foreground">Individual attendance records logged per event</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
