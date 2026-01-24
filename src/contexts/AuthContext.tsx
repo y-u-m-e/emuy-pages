@@ -5,8 +5,9 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { API_URLS } from '@/lib/api-config';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+const AUTH_API = API_URLS.AUTH;
 
 interface User {
   id: string;
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     
     try {
-      const response = await fetch(`${API_BASE}/auth/me`, {
+      const response = await fetch(`${AUTH_API}/auth/me`, {
         credentials: 'include',
       });
       
@@ -80,12 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = () => {
     const returnUrl = window.location.href;
-    window.location.href = `${API_BASE}/auth/login?return_url=${encodeURIComponent(returnUrl)}`;
+    window.location.href = `${AUTH_API}/auth/login?return_url=${encodeURIComponent(returnUrl)}`;
   };
 
   const logout = () => {
     const returnUrl = window.location.origin;
-    window.location.href = `${API_BASE}/auth/logout?return_url=${encodeURIComponent(returnUrl)}`;
+    window.location.href = `${AUTH_API}/auth/logout?return_url=${encodeURIComponent(returnUrl)}`;
   };
 
   const refresh = async () => {

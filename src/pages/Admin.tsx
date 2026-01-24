@@ -44,8 +44,9 @@ import {
   CheckCircle,
   RefreshCw
 } from 'lucide-react';
+import { API_URLS } from '@/lib/api-config';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+const AUTH_API = API_URLS.AUTH;
 
 // Types
 interface DBUser {
@@ -121,7 +122,7 @@ export default function Admin() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/admin/users?limit=500`, { credentials: 'include' });
+      const res = await fetch(`${AUTH_API}/auth/admin/users?limit=500`, { credentials: 'include' });
       const data = await res.json();
       if (data.users) setUsers(data.users);
     } catch (err) {
@@ -133,7 +134,7 @@ export default function Admin() {
 
   const fetchRoles = async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/admin/roles`, { credentials: 'include' });
+      const res = await fetch(`${AUTH_API}/auth/admin/roles`, { credentials: 'include' });
       const data = await res.json();
       if (data.roles) setRoles(data.roles);
     } catch (err) {
@@ -143,7 +144,7 @@ export default function Admin() {
 
   const fetchPermissions = async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/admin/permissions`, { credentials: 'include' });
+      const res = await fetch(`${AUTH_API}/auth/admin/permissions`, { credentials: 'include' });
       const data = await res.json();
       if (data.permissions) setPermissions(data.permissions);
     } catch (err) {
@@ -153,7 +154,7 @@ export default function Admin() {
 
   const fetchActivityLogs = async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/admin/activity?limit=100`, { credentials: 'include' });
+      const res = await fetch(`${AUTH_API}/auth/admin/activity?limit=100`, { credentials: 'include' });
       const data = await res.json();
       if (data.logs) setActivityLogs(data.logs);
     } catch (err) {
@@ -164,7 +165,7 @@ export default function Admin() {
   const handleAddUser = async () => {
     if (!newUserId.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/auth/admin/users`, {
+      const res = await fetch(`${AUTH_API}/auth/admin/users`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -182,7 +183,7 @@ export default function Admin() {
 
   const handleToggleBan = async (userId: string, isBanned: boolean) => {
     try {
-      await fetch(`${API_BASE}/auth/admin/users/${userId}/ban`, {
+      await fetch(`${AUTH_API}/auth/admin/users/${userId}/ban`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -196,7 +197,7 @@ export default function Admin() {
 
   const handleAssignRole = async (userId: string, roleId: number, assign: boolean) => {
     try {
-      await fetch(`${API_BASE}/auth/admin/users/${userId}/roles`, {
+      await fetch(`${AUTH_API}/auth/admin/users/${userId}/roles`, {
         method: assign ? 'POST' : 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

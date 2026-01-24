@@ -30,9 +30,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { API_URLS } from '@/lib/api-config';
 
-// API base URL from environment
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+// API URLs for different services
+const ATTENDANCE_API = API_URLS.ATTENDANCE;
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -134,7 +135,7 @@ export default function Profile() {
     setLoadingStats(true);
     try {
       // Get attendance records count (requires cruddy access)
-      const res = await fetch(`${API_BASE}/attendance/records`, {
+      const res = await fetch(`${ATTENDANCE_API}/attendance/records`, {
         credentials: 'include'
       });
       if (res.ok) {

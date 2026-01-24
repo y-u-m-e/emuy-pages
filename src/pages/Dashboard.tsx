@@ -33,8 +33,10 @@ import {
   ArrowUpRight,
   ExternalLink
 } from 'lucide-react';
+import { API_URLS } from '@/lib/api-config';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+const AUTH_API = API_URLS.AUTH;
+const ATTENDANCE_API = API_URLS.ATTENDANCE;
 
 // Generate mock data for charts (in production, this would come from an analytics API)
 const generateChartData = () => {
@@ -93,14 +95,14 @@ export default function Dashboard() {
       try {
         // Fetch user count if admin
         if (isAdmin) {
-          const usersRes = await fetch(`${API_BASE}/auth/admin/users?limit=1`, { credentials: 'include' });
+          const usersRes = await fetch(`${AUTH_API}/auth/admin/users?limit=1`, { credentials: 'include' });
           if (usersRes.ok) {
             const data = await usersRes.json();
             setStats(prev => ({ ...prev, totalUsers: data.total || 0 }));
           }
           
           // Fetch recent activity
-          const activityRes = await fetch(`${API_BASE}/auth/admin/activity?limit=5`, { credentials: 'include' });
+          const activityRes = await fetch(`${AUTH_API}/auth/admin/activity?limit=5`, { credentials: 'include' });
           if (activityRes.ok) {
             const data = await activityRes.json();
             if (data.logs) {
@@ -116,7 +118,7 @@ export default function Dashboard() {
         
         // Fetch attendance stats if has permission
         if (canViewCruddy) {
-          const attendanceRes = await fetch(`${API_BASE}/attendance?top=1`, { credentials: 'include' });
+          const attendanceRes = await fetch(`${ATTENDANCE_API}/attendance?top=1`, { credentials: 'include' });
           if (attendanceRes.ok) {
             const data = await attendanceRes.json();
             setStats(prev => ({ 

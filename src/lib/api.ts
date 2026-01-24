@@ -1,9 +1,11 @@
 /**
  * API Client for Yume Tools
- * Uses the central API gateway: https://api.emuy.gg
+ * Routes to appropriate microservices based on feature
  */
+import { API_URLS } from './api-config';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+// Attendance API for records/leaderboard
+const ATTENDANCE_API = API_URLS.ATTENDANCE;
 
 // Types
 export interface User {
@@ -41,7 +43,7 @@ async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(`${ATTENDANCE_API}${endpoint}`, {
       ...options,
       credentials: 'include',
       headers: {

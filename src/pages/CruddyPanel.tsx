@@ -49,8 +49,9 @@ import {
   Trash2,
   Users
 } from 'lucide-react';
+import { API_URLS } from '@/lib/api-config';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+const ATTENDANCE_API = API_URLS.ATTENDANCE;
 
 // Types
 interface AttendanceRecord {
@@ -101,7 +102,7 @@ export default function CruddyPanel() {
   const fetchRecords = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/attendance/records?limit=1000`, { credentials: 'include' });
+      const res = await fetch(`${ATTENDANCE_API}/attendance/records?limit=1000`, { credentials: 'include' });
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -141,7 +142,7 @@ export default function CruddyPanel() {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/attendance?top=20`, { credentials: 'include' });
+      const res = await fetch(`${ATTENDANCE_API}/attendance?top=20`, { credentials: 'include' });
       if (!res.ok) {
         console.error('Leaderboard API error:', res.status);
         return;
@@ -170,7 +171,7 @@ export default function CruddyPanel() {
   const handleAdd = async () => {
     if (!formName.trim() || !formEvent.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/attendance/records`, {
+      const res = await fetch(`${ATTENDANCE_API}/attendance/records`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -190,7 +191,7 @@ export default function CruddyPanel() {
   const handleEdit = async () => {
     if (!selectedRecord || !formName.trim() || !formEvent.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/attendance/records/${selectedRecord.id}`, {
+      const res = await fetch(`${ATTENDANCE_API}/attendance/records/${selectedRecord.id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -210,7 +211,7 @@ export default function CruddyPanel() {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/attendance/records/${id}`, {
+      const res = await fetch(`${ATTENDANCE_API}/attendance/records/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
