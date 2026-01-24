@@ -360,40 +360,40 @@ const nodeTypes = {
 
 // System Overview - Microservices Architecture
 const systemOverviewNodes: Node[] = [
-  // Users
-  { id: 'discord', type: 'user', position: { x: 0, y: 0 }, data: { label: 'Discord', sublabel: 'Users', icon: '💬' } },
-  { id: 'browser', type: 'user', position: { x: 600, y: 0 }, data: { label: 'Browser', sublabel: 'Web App', icon: '🌐' } },
+  // Users (Row 1)
+  { id: 'discord', type: 'user', position: { x: 50, y: 0 }, data: { label: 'Discord', sublabel: 'Users', icon: '💬' } },
+  { id: 'browser', type: 'user', position: { x: 750, y: 0 }, data: { label: 'Browser', sublabel: 'Web App', icon: '🌐' } },
   
-  // Frontend Pages (Multi-repo)
-  { id: 'emuy-pages', type: 'frontend', position: { x: 350, y: 100 }, data: { label: 'emuy-pages', sublabel: 'emuy.gg', icon: '⚛️' } },
-  { id: 'ironforged-pages', type: 'frontend', position: { x: 550, y: 100 }, data: { label: 'ironforged', sublabel: 'ironforged.gg', icon: '⚔️' } },
-  { id: 'bingo-pages', type: 'frontend', position: { x: 750, y: 100 }, data: { label: 'bingo', sublabel: 'bingo.emuy.gg', icon: '🎲' } },
-  { id: 'docs-pages', type: 'frontend', position: { x: 950, y: 100 }, data: { label: 'docs', sublabel: 'docs.emuy.gg', icon: '📚' } },
+  // Frontend Pages (Row 2 - Multi-repo)
+  { id: 'emuy-pages', type: 'frontend', position: { x: 400, y: 120 }, data: { label: 'emuy-pages', sublabel: 'emuy.gg', icon: '⚛️' } },
+  { id: 'ironforged-pages', type: 'frontend', position: { x: 620, y: 120 }, data: { label: 'ironforged', sublabel: 'ironforged.gg', icon: '⚔️' } },
+  { id: 'bingo-pages', type: 'frontend', position: { x: 840, y: 120 }, data: { label: 'bingo', sublabel: 'bingo.emuy.gg', icon: '🎲' } },
+  { id: 'docs-pages', type: 'frontend', position: { x: 1060, y: 120 }, data: { label: 'docs', sublabel: 'docs.emuy.gg', icon: '📚' } },
   
-  // Discord Bot
-  { id: 'yume-bot', type: 'backend', position: { x: 0, y: 200 }, data: { label: 'yume-bot', sublabel: 'Railway', icon: '🤖' } },
+  // Discord Bot (Left side)
+  { id: 'yume-bot', type: 'backend', position: { x: 50, y: 200 }, data: { label: 'yume-bot', sublabel: 'Railway', icon: '🤖' } },
   
-  // API Workers (Microservices)
-  { id: 'auth-api', type: 'backend', position: { x: 250, y: 250 }, data: { label: 'auth-api', sublabel: 'auth.api.emuy.gg', icon: '🔐' } },
-  { id: 'attendance-api', type: 'backend', position: { x: 450, y: 250 }, data: { label: 'attendance-api', sublabel: 'attendance.api', icon: '📋' } },
-  { id: 'events-api', type: 'backend', position: { x: 650, y: 250 }, data: { label: 'events-api', sublabel: 'events.api', icon: '🎮' } },
-  { id: 'bingo-api', type: 'backend', position: { x: 850, y: 250 }, data: { label: 'bingo-api', sublabel: 'bingo.api', icon: '🎯' } },
+  // API Workers (Row 3 - Microservices)
+  { id: 'auth-api', type: 'backend', position: { x: 300, y: 280 }, data: { label: 'auth-api', sublabel: 'auth.api.emuy.gg', icon: '🔐' } },
+  { id: 'attendance-api', type: 'backend', position: { x: 540, y: 280 }, data: { label: 'attendance-api', sublabel: 'attendance.api', icon: '📋' } },
+  { id: 'events-api', type: 'backend', position: { x: 780, y: 280 }, data: { label: 'events-api', sublabel: 'events.api', icon: '🎮' } },
+  { id: 'bingo-api', type: 'backend', position: { x: 1020, y: 280 }, data: { label: 'bingo-api', sublabel: 'bingo.api', icon: '🎯' } },
   
-  // Sesh Worker
-  { id: 'sesh-worker', type: 'backend', position: { x: 100, y: 350 }, data: { label: 'sesh-worker', sublabel: 'Cron Job', icon: '📅' } },
+  // Sesh Worker (Left side)
+  { id: 'sesh-worker', type: 'backend', position: { x: 50, y: 400 }, data: { label: 'sesh-worker', sublabel: 'Cron Job', icon: '📅' } },
   
-  // Databases
-  { id: 'auth-db', type: 'database', position: { x: 250, y: 400 }, data: { label: 'auth-db', icon: '💾' } },
-  { id: 'attendance-db', type: 'database', position: { x: 450, y: 400 }, data: { label: 'attendance-db', icon: '💾' } },
-  { id: 'events-db', type: 'database', position: { x: 650, y: 400 }, data: { label: 'events-db', icon: '💾' } },
-  { id: 'bingo-db', type: 'database', position: { x: 850, y: 400 }, data: { label: 'bingo-db', icon: '💾' } },
+  // Databases (Row 4)
+  { id: 'auth-db', type: 'database', position: { x: 300, y: 440 }, data: { label: 'auth-db', icon: '💾' } },
+  { id: 'attendance-db', type: 'database', position: { x: 540, y: 440 }, data: { label: 'attendance-db', icon: '💾' } },
+  { id: 'events-db', type: 'database', position: { x: 780, y: 440 }, data: { label: 'events-db', icon: '💾' } },
+  { id: 'bingo-db', type: 'database', position: { x: 1020, y: 440 }, data: { label: 'bingo-db', icon: '💾' } },
   
-  // Storage & External
-  { id: 'r2', type: 'database', position: { x: 750, y: 500 }, data: { label: 'R2 Storage', sublabel: 'Images', icon: '🖼️' } },
-  { id: 'discord-api', type: 'external', position: { x: 100, y: 500 }, data: { label: 'Discord API', icon: '🔗' } },
-  { id: 'gsheets', type: 'external', position: { x: 250, y: 550 }, data: { label: 'Google Sheets', icon: '📊' } },
-  { id: 'sesh', type: 'external', position: { x: 0, y: 450 }, data: { label: 'Sesh API', icon: '📅' } },
-  { id: 'runelite', type: 'external', position: { x: 950, y: 350 }, data: { label: 'RuneLite Plugin', sublabel: 'Planned', icon: '🎮' } },
+  // Storage & External (Row 5)
+  { id: 'r2', type: 'database', position: { x: 880, y: 560 }, data: { label: 'R2 Storage', sublabel: 'Images', icon: '🖼️' } },
+  { id: 'discord-api', type: 'external', position: { x: 50, y: 560 }, data: { label: 'Discord API', icon: '🔗' } },
+  { id: 'gsheets', type: 'external', position: { x: 250, y: 560 }, data: { label: 'Google Sheets', icon: '📊' } },
+  { id: 'sesh', type: 'external', position: { x: 50, y: 500 }, data: { label: 'Sesh API', icon: '📅' } },
+  { id: 'runelite', type: 'external', position: { x: 1120, y: 380 }, data: { label: 'RuneLite Plugin', sublabel: 'Planned', icon: '🎮' } },
 ];
 
 const systemOverviewEdges: Edge[] = [
@@ -442,11 +442,11 @@ const systemOverviewEdges: Edge[] = [
 // Auth Flow Diagram
 const authFlowNodes: Node[] = [
   { id: 'a1', type: 'step', position: { x: 0, y: 100 }, data: { label: 'Click Login' } },
-  { id: 'a2', type: 'step', position: { x: 150, y: 100 }, data: { label: 'Redirect to Discord' } },
-  { id: 'a3', type: 'step', position: { x: 330, y: 100 }, data: { label: 'User Authorizes' } },
-  { id: 'a4', type: 'step', position: { x: 500, y: 100 }, data: { label: 'Callback to auth-api' } },
-  { id: 'a5', type: 'step', position: { x: 680, y: 100 }, data: { label: 'Create JWT + Session' } },
-  { id: 'a6', type: 'success', position: { x: 870, y: 93 }, data: { label: 'Logged In!' } },
+  { id: 'a2', type: 'step', position: { x: 180, y: 100 }, data: { label: 'Redirect to Discord' } },
+  { id: 'a3', type: 'step', position: { x: 400, y: 100 }, data: { label: 'User Authorizes' } },
+  { id: 'a4', type: 'step', position: { x: 600, y: 100 }, data: { label: 'Callback to auth-api' } },
+  { id: 'a5', type: 'step', position: { x: 820, y: 100 }, data: { label: 'Create JWT + Session' } },
+  { id: 'a6', type: 'success', position: { x: 1040, y: 93 }, data: { label: 'Logged In!' } },
 ];
 
 const authFlowEdges: Edge[] = [
@@ -459,26 +459,26 @@ const authFlowEdges: Edge[] = [
 
 // Deployment Pipeline
 const deploymentNodes: Node[] = [
-  { id: 'd-code', type: 'user', position: { x: 50, y: 50 }, data: { label: 'Write Code', icon: '💻' } },
-  { id: 'd-commit', type: 'step', position: { x: 50, y: 140 }, data: { label: 'Git Commit' } },
-  { id: 'd-push', type: 'step', position: { x: 50, y: 210 }, data: { label: 'Git Push' } },
+  { id: 'd-code', type: 'user', position: { x: 400, y: 0 }, data: { label: 'Write Code', icon: '💻' } },
+  { id: 'd-commit', type: 'step', position: { x: 400, y: 100 }, data: { label: 'Git Commit' } },
+  { id: 'd-push', type: 'step', position: { x: 400, y: 180 }, data: { label: 'Git Push' } },
   
   // Branches
-  { id: 'd-dev', type: 'external', position: { x: -100, y: 300 }, data: { label: 'dev branch', sublabel: 'Staging', icon: '🔧' } },
-  { id: 'd-main', type: 'external', position: { x: 200, y: 300 }, data: { label: 'main branch', sublabel: 'Production', icon: '🚀' } },
+  { id: 'd-dev', type: 'external', position: { x: 150, y: 280 }, data: { label: 'dev branch', sublabel: 'Staging', icon: '🔧' } },
+  { id: 'd-main', type: 'external', position: { x: 650, y: 280 }, data: { label: 'main branch', sublabel: 'Production', icon: '🚀' } },
   
   // Pages Deployments (staging)
-  { id: 'd-pages-dev', type: 'backend', position: { x: -200, y: 420 }, data: { label: 'Pages Preview', sublabel: 'dev.*.pages.dev', icon: '☁️' } },
+  { id: 'd-pages-dev', type: 'backend', position: { x: 50, y: 400 }, data: { label: 'Pages Preview', sublabel: 'dev.*.pages.dev', icon: '☁️' } },
   
   // Pages Deployments (prod)
-  { id: 'd-emuy', type: 'success', position: { x: 0, y: 420 }, data: { label: 'emuy.gg' } },
-  { id: 'd-ironforged', type: 'success', position: { x: 180, y: 420 }, data: { label: 'ironforged.gg' } },
-  { id: 'd-bingo', type: 'success', position: { x: 360, y: 420 }, data: { label: 'bingo.emuy.gg' } },
-  { id: 'd-docs', type: 'success', position: { x: 540, y: 420 }, data: { label: 'docs.emuy.gg' } },
+  { id: 'd-emuy', type: 'success', position: { x: 400, y: 400 }, data: { label: 'emuy.gg' } },
+  { id: 'd-ironforged', type: 'success', position: { x: 580, y: 400 }, data: { label: 'ironforged.gg' } },
+  { id: 'd-bingo', type: 'success', position: { x: 760, y: 400 }, data: { label: 'bingo.emuy.gg' } },
+  { id: 'd-docs', type: 'success', position: { x: 940, y: 400 }, data: { label: 'docs.emuy.gg' } },
   
   // Workers
-  { id: 'd-workers', type: 'backend', position: { x: 400, y: 300 }, data: { label: 'Wrangler Deploy', sublabel: 'API Workers', icon: '⚡' } },
-  { id: 'd-railway', type: 'external', position: { x: 600, y: 300 }, data: { label: 'Railway', sublabel: 'yume-bot', icon: '🚂' } },
+  { id: 'd-workers', type: 'backend', position: { x: 750, y: 500 }, data: { label: 'Wrangler Deploy', sublabel: 'API Workers', icon: '⚡' } },
+  { id: 'd-railway', type: 'external', position: { x: 1000, y: 280 }, data: { label: 'Railway', sublabel: 'yume-bot', icon: '🚂' } },
 ];
 
 const deploymentEdges: Edge[] = [
@@ -497,16 +497,16 @@ const deploymentEdges: Edge[] = [
 
 // Bingo Flow (planned)
 const bingoFlowNodes: Node[] = [
-  { id: 'b-player', type: 'user', position: { x: 0, y: 100 }, data: { label: 'OSRS Player', icon: '🎮' } },
-  { id: 'b-runelite', type: 'external', position: { x: 0, y: 200 }, data: { label: 'RuneLite Plugin', sublabel: 'Java', icon: '📱' } },
-  { id: 'b-detect', type: 'step', position: { x: 180, y: 200 }, data: { label: 'Detect Achievement' } },
-  { id: 'b-webhook', type: 'step', position: { x: 350, y: 200 }, data: { label: 'Send to API' } },
-  { id: 'b-api', type: 'backend', position: { x: 520, y: 195 }, data: { label: 'bingo-api', icon: '⚡' } },
-  { id: 'b-verify', type: 'step', position: { x: 680, y: 200 }, data: { label: 'Verify & Record' } },
-  { id: 'b-db', type: 'database', position: { x: 520, y: 320 }, data: { label: 'bingo-db', icon: '💾' } },
-  { id: 'b-discord', type: 'external', position: { x: 680, y: 320 }, data: { label: 'Discord Webhook', icon: '📢' } },
-  { id: 'b-site', type: 'frontend', position: { x: 350, y: 320 }, data: { label: 'bingo-pages', sublabel: 'Live Board', icon: '⚛️' } },
-  { id: 'b-complete', type: 'success', position: { x: 520, y: 420 }, data: { label: 'Tile Complete!' } },
+  { id: 'b-player', type: 'user', position: { x: 50, y: 50 }, data: { label: 'OSRS Player', icon: '🎮' } },
+  { id: 'b-runelite', type: 'external', position: { x: 50, y: 180 }, data: { label: 'RuneLite Plugin', sublabel: 'Java', icon: '📱' } },
+  { id: 'b-detect', type: 'step', position: { x: 280, y: 180 }, data: { label: 'Detect Achievement' } },
+  { id: 'b-webhook', type: 'step', position: { x: 500, y: 180 }, data: { label: 'Send to API' } },
+  { id: 'b-api', type: 'backend', position: { x: 720, y: 170 }, data: { label: 'bingo-api', icon: '⚡' } },
+  { id: 'b-verify', type: 'step', position: { x: 940, y: 180 }, data: { label: 'Verify & Record' } },
+  { id: 'b-db', type: 'database', position: { x: 720, y: 320 }, data: { label: 'bingo-db', icon: '💾' } },
+  { id: 'b-discord', type: 'external', position: { x: 940, y: 320 }, data: { label: 'Discord Webhook', icon: '📢' } },
+  { id: 'b-site', type: 'frontend', position: { x: 500, y: 320 }, data: { label: 'bingo-pages', sublabel: 'Live Board', icon: '⚛️' } },
+  { id: 'b-complete', type: 'success', position: { x: 720, y: 450 }, data: { label: 'Tile Complete!' } },
 ];
 
 const bingoFlowEdges: Edge[] = [
@@ -531,28 +531,28 @@ const diagrams = {
     description: 'High-level view of the microservices architecture - multi-repo frontends and split API workers.',
     nodes: systemOverviewNodes,
     edges: systemOverviewEdges,
-    defaultZoom: 0.7,
+    defaultZoom: 0.6,
   },
   authFlow: {
     title: '🔐 Authentication Flow',
     description: 'How users authenticate via Discord OAuth2 through the central auth-api.',
     nodes: authFlowNodes,
     edges: authFlowEdges,
-    defaultZoom: 1,
+    defaultZoom: 0.8,
   },
   deployment: {
     title: '🚀 Deployment Pipeline',
     description: 'Git-based deployments with dev (staging) and main (production) branches.',
     nodes: deploymentNodes,
     edges: deploymentEdges,
-    defaultZoom: 0.85,
+    defaultZoom: 0.7,
   },
   bingoFlow: {
     title: '🎲 Bingo System (Planned)',
     description: 'How the RuneLite plugin will track achievements and update the bingo board.',
     nodes: bingoFlowNodes,
     edges: bingoFlowEdges,
-    defaultZoom: 0.9,
+    defaultZoom: 0.7,
   },
 };
 
@@ -656,7 +656,7 @@ function DiagramView({ nodes: initialNodes, edges: initialEdges, defaultZoom = 1
   }, [onNodeClick]);
 
   return (
-    <div className="h-[500px] bg-background rounded-xl overflow-hidden border border-border">
+    <div className="h-[600px] bg-background rounded-xl overflow-hidden border border-border">
       <ReactFlow
         nodes={nodes}
         edges={edges}
