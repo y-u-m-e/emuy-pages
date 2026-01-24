@@ -509,7 +509,7 @@ export default function Dashboard() {
               description="Track development Ironforged and yume projects"
               embedUrl="https://view.monday.com/embed/18397071076-62b29329eb0a80967ad26642ab756d14?r=use1&theme=dark" // Dark mode embed
               boardUrl="https://yume-itai.monday.com/boards/18397071076" // Link to open full board
-              height={450}
+              height={750}
               className="mt-4"
             />
           )}
