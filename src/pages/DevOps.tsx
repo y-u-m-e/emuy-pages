@@ -41,12 +41,8 @@ import {
   Heart,
   AlertTriangle,
   Link as LinkIcon,
-  Play,
   ChevronRight,
   Activity,
-  Database,
-  Shield,
-  Users,
   Gamepad2,
   FileText,
   Rocket,
@@ -82,12 +78,6 @@ interface WorkflowRun {
   conclusion: string | null;
   created_at: string;
   html_url: string;
-}
-
-interface Workflow {
-  id: number;
-  name: string;
-  path: string;
 }
 
 interface ServiceHealth {
@@ -128,9 +118,10 @@ interface SeshSyncResult {
 
 const GITHUB_ORG = 'y-u-m-e';
 
-// New architecture repos
+// GitHub repos that actually exist
+// Note: API workers are deployed via Cloudflare but not on GitHub yet
 const REPOS: Omit<RepoStatus, 'loading' | 'lastCommit' | 'workflows' | 'error'>[] = [
-  // Frontend Pages
+  // Frontend Pages (on GitHub)
   { 
     name: 'emuy-pages', 
     displayName: 'Emuy Pages',
@@ -163,40 +154,7 @@ const REPOS: Omit<RepoStatus, 'loading' | 'lastCommit' | 'workflows' | 'error'>[
     type: 'pages',
     url: 'https://docs.emuy.gg'
   },
-  // API Workers
-  { 
-    name: 'auth-api', 
-    displayName: 'Auth API',
-    description: 'Authentication & RBAC',
-    icon: <Shield className="h-5 w-5" />,
-    type: 'worker',
-    url: 'https://auth.api.emuy.gg'
-  },
-  { 
-    name: 'attendance-api', 
-    displayName: 'Attendance API',
-    description: 'Cruddy panel & leaderboards',
-    icon: <Users className="h-5 w-5" />,
-    type: 'worker',
-    url: 'https://attendance.api.emuy.gg'
-  },
-  { 
-    name: 'events-api', 
-    displayName: 'Events API',
-    description: 'Tile events system',
-    icon: <Calendar className="h-5 w-5" />,
-    type: 'worker',
-    url: 'https://events.api.emuy.gg'
-  },
-  { 
-    name: 'bingo-api', 
-    displayName: 'Bingo API',
-    description: 'Bingo event tracking',
-    icon: <Database className="h-5 w-5" />,
-    type: 'worker',
-    url: 'https://bingo.api.emuy.gg'
-  },
-  // Bot
+  // Bot (on GitHub)
   { 
     name: 'yume-bot', 
     displayName: 'Discord Bot',
@@ -206,11 +164,14 @@ const REPOS: Omit<RepoStatus, 'loading' | 'lastCommit' | 'workflows' | 'error'>[
   },
 ];
 
+// Service health checks for all backend services
+// API Workers are deployed on Cloudflare but not on GitHub yet
 const SERVICES: Omit<ServiceHealth, 'status' | 'latency' | 'lastChecked'>[] = [
   { name: 'Auth API', url: API_URLS.AUTH },
   { name: 'Attendance API', url: API_URLS.ATTENDANCE },
   { name: 'Events API', url: API_URLS.EVENTS },
   { name: 'Bingo API', url: API_URLS.BINGO },
+  { name: 'Sesh Worker', url: API_URLS.SESH },
 ];
 
 // =============================================================================
@@ -231,8 +192,6 @@ export default function DevOps() {
   const [tokenSaved, setTokenSaved] = useState(false);
   const [tokenSource, setTokenSource] = useState<'server' | 'local' | null>(null);
   const [loadingSecrets, setLoadingSecrets] = useState(true);
-  const [triggeringWorkflow, setTriggeringWorkflow] = useState<string | null>(null);
-  const [workflows, setWorkflows] = useState<Record<string, Workflow[]>>({});
   const [expandedRepos, setExpandedRepos] = useState<Set<string>>(new Set());
   
   // Service health
@@ -273,7 +232,6 @@ export default function DevOps() {
   useEffect(() => {
     if (tokenSaved && githubToken) {
       fetchAllRepoData();
-      fetchWorkflows();
     }
   }, [tokenSaved, githubToken]);
 
@@ -343,27 +301,6 @@ export default function DevOps() {
         r.name === repoName ? { ...r, loading: false, error: 'Failed to fetch' } : r
       ));
     }
-  };
-
-  const fetchWorkflows = async () => {
-    const allWorkflows: Record<string, Workflow[]> = {};
-    
-    for (const repo of REPOS) {
-      try {
-        const res = await fetch(
-          `https://api.github.com/repos/${GITHUB_ORG}/${repo.name}/actions/workflows`,
-          { headers: { Authorization: `Bearer ${githubToken}` } }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          allWorkflows[repo.name] = data.workflows || [];
-        }
-      } catch {
-        // Ignore
-      }
-    }
-    
-    setWorkflows(allWorkflows);
   };
 
   const checkAllServicesHealth = useCallback(async () => {
@@ -460,40 +397,6 @@ export default function DevOps() {
     setTokenSource(null);
   };
 
-  const triggerWorkflow = async (repoName: string, workflowId: number, inputs?: Record<string, string>) => {
-    setTriggeringWorkflow(`${repoName}-${workflowId}`);
-    
-    try {
-      const body: Record<string, unknown> = { ref: 'main' };
-      if (inputs) body.inputs = inputs;
-
-      const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/actions/workflows/${workflowId}/dispatches`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${githubToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-        }
-      );
-
-      if (res.status === 204) {
-        setTimeout(() => {
-          fetchRepoData(repoName);
-          setTriggeringWorkflow(null);
-        }, 2000);
-      } else {
-        throw new Error('Failed to trigger workflow');
-      }
-    } catch {
-      alert('Failed to trigger workflow. Make sure your token has workflow permissions.');
-      setTriggeringWorkflow(null);
-    }
-  };
-
-
   const toggleRepoExpanded = (repoName: string) => {
     setExpandedRepos(prev => {
       const next = new Set(prev);
@@ -533,7 +436,6 @@ export default function DevOps() {
   // ==========================================================================
 
   const pagesRepos = repos.filter(r => r.type === 'pages');
-  const workerRepos = repos.filter(r => r.type === 'worker');
   const botRepos = repos.filter(r => r.type === 'bot');
 
   return (
@@ -689,29 +591,6 @@ export default function DevOps() {
                     expanded={expandedRepos.has(repo.name)}
                     onToggle={() => toggleRepoExpanded(repo.name)}
                     onRefresh={() => fetchRepoData(repo.name)}
-                    getStatusIcon={getStatusIcon}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Workers */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <Server className="h-4 w-4" />
-                API Workers
-              </h3>
-              <div className="grid md:grid-cols-2 gap-3">
-                {workerRepos.map((repo) => (
-                  <RepoCard 
-                    key={repo.name} 
-                    repo={repo} 
-                    expanded={expandedRepos.has(repo.name)}
-                    onToggle={() => toggleRepoExpanded(repo.name)}
-                    onRefresh={() => fetchRepoData(repo.name)}
-                    workflows={workflows[repo.name]}
-                    onTriggerWorkflow={(wfId, inputs) => triggerWorkflow(repo.name, wfId, inputs)}
-                    triggeringWorkflow={triggeringWorkflow}
                     getStatusIcon={getStatusIcon}
                   />
                 ))}
@@ -992,9 +871,6 @@ interface RepoCardProps {
   expanded: boolean;
   onToggle: () => void;
   onRefresh: () => void;
-  workflows?: Workflow[];
-  onTriggerWorkflow?: (workflowId: number, inputs?: Record<string, string>) => void;
-  triggeringWorkflow?: string | null;
   getStatusIcon: (status: string, conclusion: string | null) => React.ReactNode;
   isBot?: boolean;
 }
@@ -1004,9 +880,6 @@ function RepoCard({
   expanded, 
   onToggle, 
   onRefresh, 
-  workflows,
-  onTriggerWorkflow,
-  triggeringWorkflow,
   getStatusIcon,
   isBot
 }: RepoCardProps) {
@@ -1112,38 +985,6 @@ function RepoCard({
             )}
 
             {/* Actions */}
-            {repo.type === 'worker' && workflows && workflows.length > 0 && onTriggerWorkflow && (
-              <div className="flex gap-2 pt-1">
-                {workflows.find(w => w.name.includes('Deploy')) && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        const wf = workflows.find(w => w.name.includes('Deploy'));
-                        if (wf) onTriggerWorkflow(wf.id, { environment: 'staging' });
-                      }}
-                      disabled={triggeringWorkflow !== null}
-                    >
-                      <Play className="h-3 w-3 mr-1" /> Staging
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => {
-                        const wf = workflows.find(w => w.name.includes('Deploy'));
-                        if (wf) onTriggerWorkflow(wf.id, { environment: 'production' });
-                      }}
-                      disabled={triggeringWorkflow !== null}
-                    >
-                      <Rocket className="h-3 w-3 mr-1" /> Production
-                    </Button>
-                  </>
-                )}
-              </div>
-            )}
-
             {/* Pages auto-deploy note */}
             {repo.type === 'pages' && (
               <p className="text-xs text-muted-foreground italic">
