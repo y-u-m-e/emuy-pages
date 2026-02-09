@@ -178,6 +178,15 @@ const REPOS: Omit<RepoStatus, 'loading' | 'lastCommit' | 'workflows' | 'error'>[
     url: 'https://docs.emuy.gg',
     stagingUrl: 'https://dev.docs-pages-bj3.pages.dev'
   },
+  { 
+    name: 'events-team-pages', 
+    displayName: 'Events Team',
+    description: 'Event tools (events-team.ironforged.gg)',
+    icon: <Calendar className="h-5 w-5" />,
+    type: 'pages',
+    url: 'https://events-team.ironforged.gg',
+    stagingUrl: 'https://dev.events-team-pages.pages.dev'
+  },
   // Bot (on GitHub)
   { 
     name: 'yume-bot', 
