@@ -35,7 +35,8 @@ import {
   Bell,
   Code2,
   ExternalLink,
-  Network
+  Network,
+  Calendar
 } from 'lucide-react';
 
 interface NavItem {
@@ -59,6 +60,7 @@ const externalNavItems: NavItem[] = [
   { path: 'https://ironforged.gg', label: 'Tile Events', icon: Gamepad2, external: true },
   { path: 'https://bingo.emuy.gg', label: 'Bingo', icon: Grid3X3, external: true },
   { path: 'https://docs.emuy.gg', label: 'Documentation', icon: BookOpen, external: true },
+  { path: 'https://events-team.ironforged.gg', label: 'Events Team', icon: Calendar, external: true },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -72,6 +74,7 @@ const stagingNavItems: NavItem[] = [
   { path: 'https://dev.ironforged-pages.pages.dev', label: 'Ironforged (Dev)', icon: Gamepad2, external: true },
   { path: 'https://dev.bingo-pages.pages.dev', label: 'Bingo (Dev)', icon: Grid3X3, external: true },
   { path: 'https://dev.docs-pages-bj3.pages.dev', label: 'Docs (Dev)', icon: BookOpen, external: true },
+  { path: 'https://dev.events-team-pages.pages.dev', label: 'Events Team (Dev)', icon: Calendar, external: true },
 ];
 
 export default function Layout() {
