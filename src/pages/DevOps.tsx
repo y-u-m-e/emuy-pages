@@ -547,8 +547,12 @@ export default function DevOps() {
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || 'Merge failed');
+        console.error('Merge API error:', error);
+        throw new Error(error.message || `Merge failed (${res.status})`);
       }
+      
+      // GitHub returns 204 if already merged, 201 if merge created
+      console.log('Merge response status:', res.status);
 
       setDeployStatus(prev => ({
         ...prev,
@@ -573,11 +577,21 @@ export default function DevOps() {
     }
   };
 
-  // Check all repos on mount
+  // Check all repos for deployment status
   const checkAllDeployments = useCallback(() => {
     const pagesRepoNames = REPOS.filter(r => r.type === 'pages').map(r => r.name);
     pagesRepoNames.forEach(name => checkBranchComparison(name));
   }, []);
+  
+  // Track active tab to auto-check deployments
+  const [activeTab, setActiveTab] = useState('repos');
+  
+  // Auto-check deployments when Deploy tab is opened
+  useEffect(() => {
+    if (activeTab === 'deploy' && tokenSaved && Object.keys(deployStatus).length === 0) {
+      checkAllDeployments();
+    }
+  }, [activeTab, tokenSaved, checkAllDeployments]);
 
   // ==========================================================================
   // ACTIONS
@@ -758,7 +772,7 @@ export default function DevOps() {
         </Card>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="repos" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="repos" className="flex items-center gap-2">
               <GitBranch className="h-4 w-4" />
