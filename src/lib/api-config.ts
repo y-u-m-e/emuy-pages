@@ -37,6 +37,11 @@ export const API_URLS = {
   
   // Sesh Calendar Worker - syncs Discord events to Google Sheets
   SESH: 'https://sesh-calendar-worker.karlstraub7.workers.dev',
+  
+  // Yume API - legacy API with sesh author map, widget heartbeats, etc.
+  YUME: isDev 
+    ? 'http://localhost:8792' 
+    : 'https://api.emuy.gg',
 };
 
 // Legacy API_BASE for backwards compatibility
