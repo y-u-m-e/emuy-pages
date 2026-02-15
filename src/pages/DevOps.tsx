@@ -48,7 +48,13 @@ import {
   FileText,
   Rocket,
   Settings,
-  Eye
+  Eye,
+  UserPlus,
+  Users,
+  Pencil,
+  Trash2,
+  Plus,
+  Save
 } from 'lucide-react';
 
 // =============================================================================
@@ -133,6 +139,13 @@ interface DeployStatus {
   };
   behindBy?: number;
   aheadBy?: number;
+}
+
+interface SeshAuthor {
+  discord_id: string;
+  display_name: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // =============================================================================
@@ -242,6 +255,14 @@ export default function DevOps() {
   
   // Deployment state
   const [deployStatus, setDeployStatus] = useState<Record<string, DeployStatus>>({});
+  
+  // Sesh Author Map state
+  const [seshAuthors, setSeshAuthors] = useState<SeshAuthor[]>([]);
+  const [loadingSeshAuthors, setLoadingSeshAuthors] = useState(false);
+  const [editingAuthor, setEditingAuthor] = useState<SeshAuthor | null>(null);
+  const [newAuthor, setNewAuthor] = useState({ discord_id: '', display_name: '' });
+  const [showAddAuthor, setShowAddAuthor] = useState(false);
+  const [authorActionLoading, setAuthorActionLoading] = useState(false);
 
   // ==========================================================================
   // DATA FETCHING
@@ -413,6 +434,118 @@ export default function DevOps() {
       });
     } finally {
       setSeshSyncing(false);
+    }
+  };
+
+  // Fetch Sesh Author Map
+  const fetchSeshAuthors = async () => {
+    setLoadingSeshAuthors(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map`, {
+        headers: token ? { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } : {}
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setSeshAuthors(data.authors || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sesh authors:', err);
+    } finally {
+      setLoadingSeshAuthors(false);
+    }
+  };
+
+  // Add new author
+  const addSeshAuthor = async () => {
+    if (!newAuthor.discord_id || !newAuthor.display_name) return;
+    
+    setAuthorActionLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newAuthor)
+      });
+      
+      if (res.ok) {
+        setNewAuthor({ discord_id: '', display_name: '' });
+        setShowAddAuthor(false);
+        await fetchSeshAuthors();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to add author');
+      }
+    } catch (err) {
+      alert('Failed to add author');
+    } finally {
+      setAuthorActionLoading(false);
+    }
+  };
+
+  // Update author
+  const updateSeshAuthor = async () => {
+    if (!editingAuthor) return;
+    
+    setAuthorActionLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map/${editingAuthor.discord_id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ display_name: editingAuthor.display_name })
+      });
+      
+      if (res.ok) {
+        setEditingAuthor(null);
+        await fetchSeshAuthors();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update author');
+      }
+    } catch (err) {
+      alert('Failed to update author');
+    } finally {
+      setAuthorActionLoading(false);
+    }
+  };
+
+  // Delete author
+  const deleteSeshAuthor = async (discordId: string) => {
+    if (!confirm('Are you sure you want to delete this author mapping?')) return;
+    
+    setAuthorActionLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map/${discordId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (res.ok) {
+        await fetchSeshAuthors();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to delete author');
+      }
+    } catch (err) {
+      alert('Failed to delete author');
+    } finally {
+      setAuthorActionLoading(false);
     }
   };
 
@@ -662,6 +795,13 @@ export default function DevOps() {
       checkAllDeployments();
     }
   }, [activeTab, tokenSaved, checkAllDeployments]);
+
+  // Auto-fetch sesh authors when Tools tab is opened
+  useEffect(() => {
+    if (activeTab === 'tools' && seshAuthors.length === 0 && !loadingSeshAuthors) {
+      fetchSeshAuthors();
+    }
+  }, [activeTab]);
 
   // ==========================================================================
   // ACTIONS
@@ -1245,25 +1385,171 @@ export default function DevOps() {
                 </CardContent>
               </Card>
 
-              {/* Widget Heartbeats - Coming Soon */}
-              <Card className="border-dashed">
+              {/* Sesh Author Map */}
+              <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Heart className="h-4 w-4 text-red-400" />
-                      Widget Heartbeats
+                      <Users className="h-4 w-4 text-cyan-400" />
+                      Sesh Author Map
                     </CardTitle>
-                    <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-                      Coming Soon
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-muted-foreground">
+                        {seshAuthors.length} users
+                      </Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={fetchSeshAuthors}
+                        disabled={loadingSeshAuthors}
+                      >
+                        {loadingSeshAuthors ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                  <CardDescription>Carrd widget status</CardDescription>
+                  <CardDescription>Map Discord IDs to display names for events</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Heart className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">Backend endpoints not yet migrated</p>
-                    <p className="text-xs mt-1">Widgets: Mention Maker, Event Parser, Infographic</p>
+                <CardContent className="space-y-4">
+                  {/* Add New Author */}
+                  {showAddAuthor ? (
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Discord ID</label>
+                          <Input
+                            placeholder="123456789012345678"
+                            value={newAuthor.discord_id}
+                            onChange={(e) => setNewAuthor(p => ({ ...p, discord_id: e.target.value }))}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Display Name</label>
+                          <Input
+                            placeholder="Player Name"
+                            value={newAuthor.display_name}
+                            onChange={(e) => setNewAuthor(p => ({ ...p, display_name: e.target.value }))}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={addSeshAuthor}
+                          disabled={authorActionLoading || !newAuthor.discord_id || !newAuthor.display_name}
+                          className="flex-1"
+                        >
+                          {authorActionLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                          )}
+                          Save
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => { setShowAddAuthor(false); setNewAuthor({ discord_id: '', display_name: '' }); }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => { setShowAddAuthor(true); fetchSeshAuthors(); }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add New Author
+                    </Button>
+                  )}
+
+                  {/* Author List */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {loadingSeshAuthors ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : seshAuthors.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No authors mapped yet</p>
+                        <p className="text-xs">Click "Add New Author" or refresh to load</p>
+                      </div>
+                    ) : (
+                      seshAuthors.map((author) => (
+                        <div 
+                          key={author.discord_id}
+                          className="flex items-center justify-between p-2 rounded bg-secondary/30 hover:bg-secondary/50"
+                        >
+                          {editingAuthor?.discord_id === author.discord_id ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <Input
+                                value={editingAuthor.display_name}
+                                onChange={(e) => setEditingAuthor(p => p ? { ...p, display_name: e.target.value } : null)}
+                                className="h-8 text-sm"
+                              />
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={updateSeshAuthor}
+                                disabled={authorActionLoading}
+                              >
+                                {authorActionLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Save className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => setEditingAuthor(null)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{author.display_name}</p>
+                                <p className="text-xs text-muted-foreground font-mono">{author.discord_id}</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => setEditingAuthor(author)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  onClick={() => deleteSeshAuthor(author.discord_id)}
+                                  disabled={authorActionLoading}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
