@@ -506,7 +506,7 @@ export default function DevOps() {
     }
   };
 
-  // Merge dev into main
+  // Merge dev into main (or trigger redeploy if already synced)
   const mergeBranches = async (repoName: string) => {
     const token = localStorage.getItem('github_pat');
     if (!token) {
@@ -514,7 +514,14 @@ export default function DevOps() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to merge dev → main for ${repoName}?\n\nThis will deploy to production.`)) {
+    const status = deployStatus[repoName];
+    const isAlreadySynced = status && status.aheadBy === 0;
+
+    const confirmMsg = isAlreadySynced
+      ? `Branches are already synced for ${repoName}.\n\nDo you want to trigger a redeploy by creating an empty commit?`
+      : `Are you sure you want to merge dev → main for ${repoName}?\n\nThis will deploy to production.`;
+
+    if (!confirm(confirmMsg)) {
       return;
     }
 
@@ -532,46 +539,109 @@ export default function DevOps() {
         'Content-Type': 'application/json'
       };
 
-      const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/merges`,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            base: 'main',
-            head: 'dev',
-            commit_message: `Merge dev into main - Deploy to production`
-          })
-        }
-      );
+      if (isAlreadySynced) {
+        // Branches are synced - create an empty commit to trigger redeploy
+        // First, get the current main branch SHA
+        const refRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/git/refs/heads/main`,
+          { headers }
+        );
+        
+        if (!refRes.ok) throw new Error('Failed to get main branch ref');
+        const refData = await refRes.json();
+        const currentSha = refData.object.sha;
 
-      if (!res.ok) {
-        const error = await res.json();
-        console.error('Merge API error:', error);
-        throw new Error(error.message || `Merge failed (${res.status})`);
+        // Get the current commit to get the tree
+        const commitRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/git/commits/${currentSha}`,
+          { headers }
+        );
+        
+        if (!commitRes.ok) throw new Error('Failed to get current commit');
+        const commitData = await commitRes.json();
+
+        // Create a new commit with the same tree (empty commit)
+        const newCommitRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/git/commits`,
+          {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              message: 'chore: Trigger production redeploy',
+              tree: commitData.tree.sha,
+              parents: [currentSha]
+            })
+          }
+        );
+
+        if (!newCommitRes.ok) throw new Error('Failed to create commit');
+        const newCommitData = await newCommitRes.json();
+
+        // Update the main branch ref to point to the new commit
+        const updateRefRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/git/refs/heads/main`,
+          {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({
+              sha: newCommitData.sha
+            })
+          }
+        );
+
+        if (!updateRefRes.ok) throw new Error('Failed to update branch');
+
+        setDeployStatus(prev => ({
+          ...prev,
+          [repoName]: {
+            ...prev[repoName],
+            status: 'success',
+            message: 'Triggered redeploy! Build in progress...'
+          }
+        }));
+      } else {
+        // Normal merge
+        const res = await fetch(
+          `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/merges`,
+          {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              base: 'main',
+              head: 'dev',
+              commit_message: `Merge dev into main - Deploy to production`
+            })
+          }
+        );
+
+        if (!res.ok) {
+          const error = await res.json();
+          console.error('Merge API error:', error);
+          throw new Error(error.message || `Merge failed (${res.status})`);
+        }
+        
+        console.log('Merge response status:', res.status);
+
+        setDeployStatus(prev => ({
+          ...prev,
+          [repoName]: {
+            ...prev[repoName],
+            status: 'success',
+            message: 'Successfully merged! Deployment in progress...'
+          }
+        }));
       }
-      
-      // GitHub returns 204 if already merged, 201 if merge created
-      console.log('Merge response status:', res.status);
-
-      setDeployStatus(prev => ({
-        ...prev,
-        [repoName]: {
-          ...prev[repoName],
-          status: 'success',
-          message: 'Successfully merged! Deployment in progress...'
-        }
-      }));
 
       // Refresh after a short delay
       setTimeout(() => checkBranchComparison(repoName), 3000);
     } catch (err) {
+      console.error('Deploy error:', err);
       setDeployStatus(prev => ({
         ...prev,
         [repoName]: {
           ...prev[repoName],
           status: 'error',
-          message: err instanceof Error ? err.message : 'Merge failed'
+          message: err instanceof Error ? err.message : 'Deploy failed'
         }
       }));
     }
@@ -886,7 +956,8 @@ export default function DevOps() {
                     const isChecking = status?.status === 'checking';
                     const isMerging = status?.status === 'merging';
                     const hasChanges = (status?.aheadBy || 0) > 0;
-                    const isUpToDate = status?.devBranch?.sha === status?.mainBranch?.sha;
+                    // Only consider up to date if we have status AND aheadBy is 0
+                    const isUpToDate = status && status.aheadBy === 0 && status.devBranch?.sha === status.mainBranch?.sha;
 
                     return (
                       <Card key={repo.name} className="overflow-hidden">
@@ -947,7 +1018,7 @@ export default function DevOps() {
                                 variant={hasChanges ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => mergeBranches(repo.name)}
-                                disabled={isChecking || isMerging || isUpToDate || !status}
+                                disabled={isChecking || isMerging || !status}
                                 className={hasChanges ? "bg-amber-500 hover:bg-amber-600 text-black" : ""}
                               >
                                 {isMerging ? (
@@ -958,7 +1029,7 @@ export default function DevOps() {
                                 ) : (
                                   <>
                                     <GitMerge className="h-4 w-4 mr-2" />
-                                    {isUpToDate ? 'Up to date' : 'Deploy to Prod'}
+                                    {isUpToDate ? 'Synced - Redeploy' : 'Deploy to Prod'}
                                   </>
                                 )}
                               </Button>
