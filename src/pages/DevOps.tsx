@@ -439,17 +439,23 @@ export default function DevOps() {
   const fetchSeshAuthors = async () => {
     setLoadingSeshAuthors(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      // Check for staging token (used on .pages.dev preview URLs)
+      const stagingToken = localStorage.getItem('staging_auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (stagingToken) {
+        headers['Authorization'] = `Bearer ${stagingToken}`;
+      }
+      
       const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map`, {
-        headers: token ? { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } : {}
+        credentials: 'include', // Include cookies for production auth
+        headers
       });
       
       if (res.ok) {
         const data = await res.json();
         setSeshAuthors(data.authors || []);
+      } else {
+        console.error('Failed to fetch sesh authors:', res.status, await res.text());
       }
     } catch (err) {
       console.error('Failed to fetch sesh authors:', err);
@@ -464,13 +470,16 @@ export default function DevOps() {
     
     setAuthorActionLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const stagingToken = localStorage.getItem('staging_auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (stagingToken) {
+        headers['Authorization'] = `Bearer ${stagingToken}`;
+      }
+      
       const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        credentials: 'include',
+        headers,
         body: JSON.stringify(newAuthor)
       });
       
@@ -495,13 +504,16 @@ export default function DevOps() {
     
     setAuthorActionLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const stagingToken = localStorage.getItem('staging_auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (stagingToken) {
+        headers['Authorization'] = `Bearer ${stagingToken}`;
+      }
+      
       const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map/${editingAuthor.discord_id}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        credentials: 'include',
+        headers,
         body: JSON.stringify({ display_name: editingAuthor.display_name })
       });
       
@@ -525,13 +537,16 @@ export default function DevOps() {
     
     setAuthorActionLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const stagingToken = localStorage.getItem('staging_auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (stagingToken) {
+        headers['Authorization'] = `Bearer ${stagingToken}`;
+      }
+      
       const res = await fetch(`${API_URLS.YUME}/admin/sesh-author-map/${discordId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        credentials: 'include',
+        headers
       });
       
       if (res.ok) {
